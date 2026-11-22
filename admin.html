@@ -221,12 +221,15 @@
         <!-- IMPORT PUBLIC JOB BOARD LISTINGS -->
         <div class="section">
             <h2>Import Public Job Listings</h2>
-            <p>Import currently published jobs from a company's public Greenhouse or Lever board. Enter the board identifier (not a search keyword).</p>
+            <p>Import currently published jobs from supported public company job boards. Enter the company's board identifier (not a search keyword). Some platforms may require an employer-provided API token.</p>
             <div class="form-group">
                 <label for="jobBoardProvider">Source platform</label>
                 <select id="jobBoardProvider">
                     <option value="greenhouse">Greenhouse</option>
                     <option value="lever">Lever</option>
+                    <option value="ashby">Ashby</option>
+                    <option value="recruitee">Recruitee</option>
+                    <option value="workable">Workable (public feed)</option>
                 </select>
             </div>
             <div class="form-group">
