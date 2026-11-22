@@ -1585,7 +1585,7 @@ if (!aiResponse.ok) {
         message: payload.detail || payload.message || responseText || "AI recommendation service returned an error."
     });
 }
-                }
+                
                 return res.json(payload);
             } catch (aiError) {
                 console.error("AI service connection failed:", aiError);
