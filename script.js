@@ -207,11 +207,29 @@
     const matched = required.filter(s => mine.has(s));
     return { matched, missing: required.filter(s => !mine.has(s)), score: required.length ? Math.round(matched.length / required.length * 100) : 0, semantic: null, keyword: required.length ? Math.round(matched.length / required.length * 100) : 0, isAI: false };
   }
+  function setAiStatus(message, isError = false) {
+    const status = $("aiRecommendationStatus");
+    if (!status) return;
+    status.textContent = message;
+    status.style.color = isError ? "#b91c1c" : "#475569";
+  }
   async function loadAiRecommendations() {
     const key = resumeStorageKey();
     const resumeText = (key ? localStorage.getItem(key) : "") || "";
     const cvText = resumeText.trim();
-    if (!token() || cvText.length < 20 || !jobs.length) return;
+    if (!token() || !currentUser()) {
+      setAiStatus("Log in to get CV-based AI recommendations.");
+      return;
+    }
+    if (cvText.length < 20) {
+      setAiStatus("Upload your CV in My Profile to enable AI skill matching.");
+      return;
+    }
+    if (!jobs.length) {
+      setAiStatus("No jobs are available to match against your CV.");
+      return;
+    }
+    setAiStatus("Analyzing your CV against available jobs...");
     try {
       const result = await api("/recommendations", {
         method: "POST",
@@ -219,8 +237,12 @@
       });
       aiRecommendations = new Map((result.recommendations || []).map(item => [Number(item.job_id), item]));
       aiRecommendationError = "";
+      setAiStatus(aiRecommendations.size
+        ? `AI skill matching completed for ${aiRecommendations.size} jobs.`
+        : "The AI service returned no job recommendations.");
     } catch (error) {
       aiRecommendationError = error.message;
+      setAiStatus(`AI matching failed: ${error.message}. Showing profile-skill matches instead.`, true);
       console.warn("AI recommendations unavailable:", error.message);
     }
     renderJobs();
