@@ -44,44 +44,115 @@ def health():
     return {"success": True, "service": "sbert-cosine", "model": MODEL_NAME, "model_loaded": model is not None}
 
 @app.post("/recommend")
+
+@app.post("/recommend")
 def recommend(payload: RecommendationRequest):
     if model is None:
-        raise HTTPException(status_code=503, detail="Sentence-BERT model is not loaded yet.")
+        raise HTTPException(
+            status_code=503,
+            detail="Sentence-BERT model is not loaded yet."
+        )
+
     if not payload.jobs:
-        return {"success": True, "model": MODEL_NAME, "recommendations": []}
+        return {
+            "success": True,
+            "model": MODEL_NAME,
+            "recommendations": []
+        }
 
-    cv = payload.cv_text.strip()
-    job_texts = []
-    for job in payload.jobs:
-        skills = skills_list(job.required_skills)
-        combined = " ".join([job.title, job.company, job.description, "Required skills: " + ", ".join(skills)])
-        job_texts.append(combined[:5000] or job.title or "Job")
+    import gc
 
-    # Sentence-BERT creates dense semantic embeddings for the CV and each job.
-    embeddings = model.encode([cv[:12000]] + job_texts, normalize_embeddings=True, convert_to_numpy=True)
-    cv_embedding = embeddings[0].reshape(1, -1)
-    job_embeddings = embeddings[1:]
-    # Cosine similarity compares the CV embedding with each job embedding.
-    semantic_scores = cosine_similarity(cv_embedding, job_embeddings)[0]
+    cv = payload.cv_text.strip().lower()
 
-    cv_lower = cv.lower()
+    # Encode the CV only once.
+    cv_embedding = model.encode(
+        [cv[:12000]],
+        normalize_embeddings=True,
+        convert_to_numpy=True,
+        batch_size=1
+    )
+
     results = []
-    for index, job in enumerate(payload.jobs):
-        skills = skills_list(job.required_skills)
-        matched = [skill for skill in skills if skill.lower() in cv_lower]
-        missing = [skill for skill in skills if skill.lower() not in cv_lower]
-        keyword_score = (len(matched) / len(skills) * 100) if skills else 0.0
-        semantic_score = max(0.0, min(100.0, float(semantic_scores[index]) * 100.0))
-        # Weighted combination: semantic meaning + explicit skill overlap.
-        final_score = 0.70 * semantic_score + 0.30 * keyword_score
-        results.append({
-            "job_id": job.id,
-            "semantic_score": round(semantic_score, 2),
-            "cosine_similarity": round(float(semantic_scores[index]), 4),
-            "keyword_score": round(keyword_score, 2),
-            "match_score": round(final_score, 2),
-            "matched_skills": matched,
-            "missing_skills": missing
-        })
-    results.sort(key=lambda item: item["match_score"], reverse=True)
-    return {"success": True, "model": MODEL_NAME, "scoring": "70% semantic cosine similarity + 30% keyword skill overlap", "recommendations": results}
+    batch_size = 8
+
+    # Process jobs in small batches to reduce RAM usage.
+    for start in range(0, len(payload.jobs), batch_size):
+        batch = payload.jobs[start:start + batch_size]
+        job_texts = []
+
+        for job in batch:
+            skills = skills_list(job.required_skills)
+
+            combined = " ".join([
+                str(job.title or ""),
+                str(job.company or ""),
+                str(job.description or ""),
+                "Required skills: " + ", ".join(skills)
+            ])
+
+            job_texts.append(combined[:1500] or "Job")
+
+        job_embeddings = model.encode(
+            job_texts,
+            normalize_embeddings=True,
+            convert_to_numpy=True,
+            batch_size=2
+        )
+
+        semantic_scores = cosine_similarity(
+            cv_embedding, job_embeddings
+        )[0]
+
+        for index, job in enumerate(batch):
+            skills = skills_list(job.required_skills)
+
+            matched = [
+                skill for skill in skills
+                if skill.lower() in cv
+            ]
+
+            missing = [
+                skill for skill in skills
+                if skill.lower() not in cv
+            ]
+
+            keyword_score = (
+                len(matched) / len(skills) * 100
+            ) if skills else 0.0
+
+            semantic_score = max(
+                0.0,
+                min(100.0, float(semantic_scores[index]) * 100.0)
+            )
+
+            final_score = (
+                0.70 * semantic_score +
+                0.30 * keyword_score
+            )
+
+            results.append({
+                "job_id": job.id,
+                "semantic_score": round(semantic_score, 2),
+                "cosine_similarity": round(
+                    float(semantic_scores[index]), 4
+                ),
+                "keyword_score": round(keyword_score, 2),
+                "match_score": round(final_score, 2),
+                "matched_skills": matched,
+                "missing_skills": missing
+            })
+
+        del job_embeddings, job_texts, semantic_scores
+        gc.collect()
+
+    results.sort(
+        key=lambda item: item["match_score"],
+        reverse=True
+    )
+
+    return {
+        "success": True,
+        "model": MODEL_NAME,
+        "scoring": "70% semantic cosine similarity + 30% keyword skill overlap",
+        "recommendations": results
+    }
