@@ -1567,13 +1567,24 @@ app.post("/api/recommendations", verifyToken, async function(req, res) {
                     headers: { "Content-Type": "application/json", "Accept": "application/json" },
                     body: JSON.stringify({ cv_text: cvText, jobs })
                 });
-                const payload = await aiResponse.json().catch(() => ({}));
-                if (!aiResponse.ok) {
-                    console.error("AI service error:", payload);
-                    return res.status(502).json({
-                        success: false,
-                        message: payload.detail || payload.message || "AI recommendation service returned an error."
-                    });
+               const responseText = await aiResponse.text();
+
+let payload = {};
+try {
+    payload = JSON.parse(responseText);
+} catch (error) {
+    payload = { raw_response: responseText };
+}
+
+if (!aiResponse.ok) {
+    console.error("AI SERVICE STATUS:", aiResponse.status);
+    console.error("AI SERVICE RESPONSE:", responseText);
+
+    return res.status(502).json({
+        success: false,
+        message: payload.detail || payload.message || responseText || "AI recommendation service returned an error."
+    });
+}
                 }
                 return res.json(payload);
             } catch (aiError) {
