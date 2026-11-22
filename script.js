@@ -253,7 +253,9 @@
         ${job.match.isAI ? `<p><strong>Sentence-BERT semantic score:</strong> ${job.match.semantic.toFixed(1)}%</p><p><strong>Cosine similarity:</strong> ${job.match.cosine.toFixed(4)}</p><p><strong>Keyword match:</strong> ${job.match.keyword.toFixed(1)}%</p>` : ""}
         <p><strong>Matched skills:</strong> ${esc(job.match.matched.join(", ") || "None")}</p>
         <p><strong>Missing skills:</strong> ${esc(job.match.missing.join(", ") || "None")}</p>
-        <div class="job-actions"><button class="applyBtn" data-id="${Number(job.id)}">Apply Now</button>
+        <div class="job-actions">${job.source_url
+          ? `<a href="${esc(job.source_url)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 14px;border-radius:6px;background:#2563eb;color:#fff;text-decoration:none">Apply on company site</a>`
+          : `<button class="applyBtn" data-id="${Number(job.id)}">Apply Now</button>`}
         <button class="detailsBtn" data-id="${Number(job.id)}">View Details</button></div>`;
       jobsContainer.appendChild(card);
     });
@@ -282,7 +284,8 @@
     modal.innerHTML = `<div style="background:white;color:#222;max-width:600px;width:100%;padding:28px;border-radius:14px;max-height:85vh;overflow:auto">
       <button id="closeDetails" style="float:right">Close</button><h2>${esc(job.title)}</h2>
       <p><b>Company:</b> ${esc(job.company)}</p><p><b>Type:</b> ${esc(job.type)}</p><p><b>Location:</b> ${esc(job.location)}</p>
-      <h3>Description</h3><p>${esc(job.description)}</p><h3>Required skills</h3><p>${esc(job.skills.join(", "))}</p></div>`;
+      <h3>Description</h3><p>${esc(job.description)}</p><h3>Required skills</h3><p>${esc(job.skills.join(", "))}</p>
+      ${job.source_url ? `<p><a href="${esc(job.source_url)}" target="_blank" rel="noopener noreferrer">View original job posting / apply</a></p>` : ""}</div>`;
     document.body.appendChild(modal);
     $("closeDetails").onclick = () => modal.remove();
     modal.addEventListener("click", e => { if (e.target === modal) modal.remove(); });
