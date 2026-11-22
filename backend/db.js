@@ -7,7 +7,11 @@ const connection = mysql.createConnection({
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD || "",
   database: process.env.DB_NAME || "ai_job_system",
-  charset: "utf8mb4"
+  charset: "utf8mb4",
+  // TiDB Cloud Starter requires TLS on its public endpoint.
+  ssl: process.env.NODE_ENV === "production"
+    ? { minVersion: "TLSv1.2" }
+    : undefined
 });
 
 connection.connect(error => {
