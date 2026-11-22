@@ -1449,15 +1449,43 @@ function normalizePublicJob(provider, item, board) {
 
 async function importPublicJobs(req, res) {
     const provider = String(req.params.provider || "").toLowerCase();
-    const board = String(req.params.board || "").trim();
+    const input = String(req.params.board || "").trim();
     const supported = ["greenhouse", "lever", "ashby", "recruitee", "workable"];
 
     if (!supported.includes(provider)) {
         return res.status(400).json({ success: false, message: "Unsupported platform. Choose Greenhouse, Lever, Ashby, Recruitee or Workable." });
     }
-    if (!/^[a-zA-Z0-9_-]{2,80}$/.test(board)) {
-        return res.status(400).json({ success: false, message: "Enter a valid public job-board identifier." });
+
+    // Accept a company name, a board slug, or a provider-specific public careers URL.
+    function resolveBoardIdentifier(value, source) {
+        let candidate = value;
+        if (/^https?:\/\//i.test(value)) {
+            let url;
+            try { url = new URL(value); } catch { throw new Error("That careers page URL is not valid."); }
+            const host = url.hostname.toLowerCase().replace(/^www\./, "");
+            const parts = url.pathname.split("/").filter(Boolean);
+            if (source === "greenhouse" && (host === "boards.greenhouse.io" || host === "job-boards.greenhouse.io")) candidate = parts[0] || "";
+            else if (source === "lever" && host === "jobs.lever.co") candidate = parts[0] || "";
+            else if (source === "ashby" && host === "jobs.ashbyhq.com") candidate = parts[0] || "";
+            else if (source === "recruitee" && host.endsWith(".recruitee.com")) candidate = host.slice(0, -".recruitee.com".length);
+            else if (source === "workable" && (host === "apply.workable.com" || host === "www.workable.com")) candidate = parts[0] || "";
+            else throw new Error("This URL does not look like a public " + source + " job-board URL. Choose the matching platform or paste its job-board URL.");
+        } else {
+            candidate = value.toLowerCase()
+                .replace(/\b(incorporated|inc|corporation|corp|limited|ltd|llc)\b/g, " ")
+                .trim()
+                .replace(/[^a-z0-9_-]+/g, "-")
+                .replace(/^-+|-+$/g, "");
+        }
+        if (!/^[a-zA-Z0-9_-]{2,80}$/.test(candidate)) {
+            throw new Error("Could not identify the public job board. Try the company's exact name or its provider-specific careers URL.");
+        }
+        return candidate;
     }
+
+    let board;
+    try { board = resolveBoardIdentifier(input, provider); }
+    catch (error) { return res.status(400).json({ success: false, message: error.message }); }
 
     const urls = {
         greenhouse: `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(board)}/jobs?content=true`,
