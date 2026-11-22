@@ -84,7 +84,7 @@
   if (importButton) importButton.addEventListener("click", async () => {
     const provider = $("jobBoardProvider").value;
     const board = $("jobBoardName").value.trim();
-    if (!board) { $("importMessage").textContent = "Enter the company's board identifier."; return; }
+    if (!board) { $("importMessage").textContent = "Enter a company name or public careers page URL."; return; }
     importButton.disabled = true;
     $("importMessage").textContent = "Importing public listings…";
     try {
