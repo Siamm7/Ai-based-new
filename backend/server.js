@@ -1307,6 +1307,81 @@ function plainText(value) {
         .replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").replace(/\s+/g, " ").trim();
 }
 
+// Extract recognizable technical and workplace skills from a job description.
+// This is a transparent dictionary-based extractor, not an AI/LLM classifier.
+function extractRequiredSkills(description) {
+    const text = String(description || "").toLowerCase();
+    const skills = [
+        ["JavaScript", /\bjavascript\b|\bjs\b/],
+        ["TypeScript", /\btypescript\b/],
+        ["Python", /\bpython\b/],
+        ["Java", /\bjava\b/],
+        ["C++", /\bc\+\+\b/],
+        ["C#", /\bc#\b|\bc-sharp\b/],
+        ["C", /\bc language\b|\blanguage c\b/],
+        ["Go", /\bgolang\b|\bgo language\b/],
+        ["Ruby", /\bruby\b/],
+        ["PHP", /\bphp\b/],
+        ["Swift", /\bswift\b/],
+        ["Kotlin", /\bkotlin\b/],
+        ["Rust", /\brust\b/],
+        ["HTML", /\bhtml5?\b/],
+        ["CSS", /\bcss3?\b/],
+        ["React", /\breact(?:\.js)?\b/],
+        ["Angular", /\bangular\b/],
+        ["Vue.js", /\bvue(?:\.js)?\b/],
+        ["Next.js", /\bnext\.js\b/],
+        ["Node.js", /\bnode(?:\.js)?\b/],
+        ["Express.js", /\bexpress(?:\.js)?\b/],
+        ["Django", /\bdjango\b/],
+        ["Flask", /\bflask\b/],
+        ["FastAPI", /\bfastapi\b/],
+        ["Spring", /\bspring(?: boot)?\b/],
+        [".NET", /\.net\b|\bdotnet\b/],
+        ["SQL", /\bsql\b/],
+        ["MySQL", /\bmysql\b/],
+        ["PostgreSQL", /\bpostgres(?:ql)?\b/],
+        ["MongoDB", /\bmongodb\b/],
+        ["Redis", /\bredis\b/],
+        ["AWS", /\baws\b|\bamazon web services\b/],
+        ["Azure", /\bazure\b/],
+        ["Google Cloud", /\bgoogle cloud\b|\bgcp\b/],
+        ["Docker", /\bdocker\b/],
+        ["Kubernetes", /\bkubernetes\b/],
+        ["Git", /\bgit\b/],
+        ["Linux", /\blinux\b/],
+        ["REST APIs", /\brest(?:ful)? apis?\b/],
+        ["GraphQL", /\bgraphql\b/],
+        ["Machine Learning", /\bmachine learning\b/],
+        ["Deep Learning", /\bdeep learning\b/],
+        ["Artificial Intelligence", /\bartificial intelligence\b|\bai\b/],
+        ["NLP", /\bnatural language processing\b|\bnlp\b/],
+        ["Data Analysis", /\bdata analysis\b|\bdata analytics\b/],
+        ["Data Science", /\bdata science\b/],
+        ["Pandas", /\bpandas\b/],
+        ["NumPy", /\bnumpy\b/],
+        ["TensorFlow", /\btensorflow\b/],
+        ["PyTorch", /\bpytorch\b/],
+        ["Scikit-learn", /\bscikit.learn\b|\bsklearn\b/],
+        ["Computer Vision", /\bcomputer vision\b/],
+        ["Figma", /\bfigma\b/],
+        ["UI/UX Design", /\bui\/ux\b|\buser experience design\b/],
+        ["Agile", /\bagile\b/],
+        ["Scrum", /\bscrum\b/],
+        ["Communication", /\bcommunication skills?\b/],
+        ["Problem Solving", /\bproblem.solving\b/],
+        ["Project Management", /\bproject management\b/],
+        ["Leadership", /\bleadership\b/],
+        ["Excel", /\bexcel\b/]
+    ];
+
+    return skills
+        .filter(([, pattern]) => pattern.test(text))
+        .map(([name]) => name)
+        .join(", ")
+        .slice(0, 1000);
+}
+
 function getJobRecords(provider, payload) {
     if (provider === "greenhouse") return payload.jobs || [];
     if (provider === "lever") return Array.isArray(payload) ? payload : [];
@@ -1409,9 +1484,9 @@ async function importPublicJobs(req, res) {
                 (title,company,job_type,location,description,required_skills,source_name,source_url)
                 VALUES (?,?,?,?,?,?,?,?)
                 ON DUPLICATE KEY UPDATE title=VALUES(title), company=VALUES(company),
-                job_type=VALUES(job_type), location=VALUES(location), description=VALUES(description),
+                job_type=VALUES(job_type), location=VALUES(location), description=VALUES(description), required_skills=VALUES(required_skills),
                 source_name=VALUES(source_name)`;
-            db.query(sql, [job.title, job.company, job.jobType, job.location, job.description, "", provider, job.sourceUrl],
+            db.query(sql, [job.title, job.company, job.jobType, job.location, job.description, extractRequiredSkills(job.description), provider, job.sourceUrl],
                 (error, result) => error ? reject(error) : resolve(result.affectedRows > 0));
         }));
 
