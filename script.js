@@ -9,6 +9,8 @@
     catch { return null; }
   };
   const setUser = (user) => localStorage.setItem("studentData", JSON.stringify(user));
+  // Keep resume text separate for each account on this browser.
+  const resumeStorageKey = (user = currentUser()) => user?.id ? `resumeText:${user.id}` : null;
   const esc = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   })[c]);
@@ -72,7 +74,10 @@
         skills: $("skills").value.split(",").map(s => s.trim()).filter(Boolean).join(", ")
       };
       await api("/students", { method: "POST", body: JSON.stringify(payload) });
-      alert("Account created. Please log in.");
+      // A newly registered account must not inherit the previous browser session.
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("studentData");
+      alert("Account created. Please log in with your new account.");
       location.href = "login.html";
     } catch (err) { alert(err.message); }
     finally { button.disabled = false; }
@@ -161,7 +166,10 @@
         const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
         text = result.value;
       }
-      if (text.trim()) localStorage.setItem("resumeText", text.slice(0, 30000));
+      if (text.trim()) {
+        const key = resumeStorageKey(user);
+        if (key) localStorage.setItem(key, text.slice(0, 30000));
+      }
       statusMessage($("uploadMessage"), "Resume uploaded. " + (text.trim() ? "Text extracted for skill matching." : "The file is stored; text extraction was unavailable in this browser."));
       if ($("resumeTextPreview")) $("resumeTextPreview").textContent = text.slice(0, 5000);
     } catch (err) { statusMessage($("uploadMessage"), err.message, true); }
@@ -200,7 +208,9 @@
     return { matched, missing: required.filter(s => !mine.has(s)), score: required.length ? Math.round(matched.length / required.length * 100) : 0, semantic: null, keyword: required.length ? Math.round(matched.length / required.length * 100) : 0, isAI: false };
   }
   async function loadAiRecommendations() {
-    const cvText = (localStorage.getItem("resumeText") || "").trim();
+    const key = resumeStorageKey();
+    const resumeText = (key ? localStorage.getItem(key) : "") || "";
+    const cvText = resumeText.trim();
     if (!token() || cvText.length < 20 || !jobs.length) return;
     try {
       const result = await api("/recommendations", {
