@@ -1298,60 +1298,136 @@ app.get(
 
 
 // ==========================================
-// PUBLIC JOB BOARD IMPORTERS (Greenhouse + Lever)
-// Only import listings exposed by the employer's public job-board API.
+// PUBLIC JOB BOARD IMPORTERS
+// Imports only published listings exposed by supported employer job-board feeds.
 // ==========================================
 function plainText(value) {
     return String(value || "").replace(/<[^>]*>/g, " ").replace(/&nbsp;/gi, " ")
         .replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">")
-        .replace(/&quot;/gi, '"').replace(/\s+/g, " ").trim();
+        .replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").replace(/\\s+/g, " ").trim();
 }
-function importPublicJobs(req, res, provider) {
+
+function getJobRecords(provider, payload) {
+    if (provider === "greenhouse") return payload.jobs || [];
+    if (provider === "lever") return Array.isArray(payload) ? payload : [];
+    if (provider === "ashby") return payload.jobs || [];
+    if (provider === "recruitee") return payload.offers || [];
+    if (provider === "workable") return payload.jobs || [];
+    return [];
+}
+
+function normalizePublicJob(provider, item, board) {
+    let title = "", company = board, location = "Not specified";
+    let description = "", sourceUrl = "", category = "", employment = "";
+
+    if (provider === "greenhouse") {
+        title = item.title;
+        location = (item.location && item.location.name) || location;
+        description = plainText(item.content);
+        sourceUrl = item.absolute_url;
+        category = (item.departments || []).map(x => x.name).join(", ");
+    } else if (provider === "lever") {
+        title = item.text;
+        location = (item.categories && item.categories.location) || location;
+        description = plainText([item.description, ...(item.additional || []).map(x => x.content || "")].join(" "));
+        sourceUrl = item.hostedUrl;
+        category = (item.categories && item.categories.commitment) || "";
+    } else if (provider === "ashby") {
+        title = item.title;
+        location = item.location || (item.isRemote ? "Remote" : location);
+        description = plainText(item.descriptionPlain || item.descriptionHtml);
+        sourceUrl = item.jobUrl || item.applyUrl;
+        category = [item.department, item.team].filter(Boolean).join(", ");
+        employment = item.employmentType || "";
+    } else if (provider === "recruitee") {
+        title = item.title;
+        location = typeof item.location === "string" ? item.location :
+            (item.location && (item.location.city || item.location.name)) || location;
+        description = plainText(item.description || item.description_html);
+        sourceUrl = item.careers_url || item.url || item.careers_apply_url;
+        category = item.department || item.department_name || "";
+        employment = item.employment_type || "";
+    } else if (provider === "workable") {
+        title = item.title;
+        location = (item.location && (item.location.location_str || item.location.city)) || location;
+        description = plainText(item.description || item.description_text);
+        sourceUrl = item.url || item.application_url || item.shortlink;
+        category = item.department || "";
+        employment = item.employment_type || item.employmentType || "";
+    }
+
+    if (!title || !sourceUrl) return null;
+    const typeText = String(employment + " " + category + " " + title);
+    const jobType = /intern/i.test(typeText) ? "Internship" :
+        (/part.?time/i.test(typeText) ? "Part-time" :
+        (/contract/i.test(typeText) ? "Contract" : "Full-time"));
+
+    return {
+        title: String(title).slice(0, 190),
+        company: String(item.company_name || item.company || company).slice(0, 190),
+        jobType,
+        location: String(location).slice(0, 190),
+        description: String(description).slice(0, 12000),
+        sourceUrl: String(sourceUrl).slice(0, 1000)
+    };
+}
+
+async function importPublicJobs(req, res) {
+    const provider = String(req.params.provider || "").toLowerCase();
     const board = String(req.params.board || "").trim();
+    const supported = ["greenhouse", "lever", "ashby", "recruitee", "workable"];
+
+    if (!supported.includes(provider)) {
+        return res.status(400).json({ success: false, message: "Unsupported platform. Choose Greenhouse, Lever, Ashby, Recruitee or Workable." });
+    }
     if (!/^[a-zA-Z0-9_-]{2,80}$/.test(board)) {
         return res.status(400).json({ success: false, message: "Enter a valid public job-board identifier." });
     }
-    const url = provider === "greenhouse"
-        ? `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(board)}/jobs?content=true`
-        : `https://api.lever.co/v0/postings/${encodeURIComponent(board)}?mode=json`;
-    fetch(url, { headers: { "Accept": "application/json", "User-Agent": "StudentJobRecommendationSystem/1.0" } })
-        .then(async response => {
-            if (!response.ok) throw new Error(`Provider returned HTTP ${response.status}`);
-            return response.json();
-        })
-        .then(payload => {
-            const records = provider === "greenhouse" ? (payload.jobs || []) : (Array.isArray(payload) ? payload : []);
-            if (!records.length) return res.json({ success: true, imported: 0, message: "No public listings were returned for that board." });
-            const tasks = records.map(item => {
-                const title = provider === "greenhouse" ? item.title : item.text;
-                const company = board;
-                const location = provider === "greenhouse"
-                    ? (item.location && item.location.name) || "Not specified"
-                    : (item.categories && item.categories.location) || "Not specified";
-                const description = provider === "greenhouse"
-                    ? plainText(item.content)
-                    : plainText((item.description || "") + " " + (item.additional || []).map(x => x.content || "").join(" "));
-                const sourceUrl = provider === "greenhouse" ? item.absolute_url : item.hostedUrl;
-                if (!title || !sourceUrl) return Promise.resolve(false);
-                const category = provider === "greenhouse" ? (item.departments || []).map(x => x.name).join(", ") : ((item.categories && item.categories.commitment) || "");
-                const jobType = /intern/i.test(`${title} ${category}`) ? "Internship" : (/part.?time/i.test(category) ? "Part-time" : "Full-time");
-                const sql = `INSERT INTO jobs (title,company,job_type,location,description,required_skills,source_name,source_url)
-                    VALUES (?,?,?,?,?,?,?,?)
-                    ON DUPLICATE KEY UPDATE title=VALUES(title), company=VALUES(company), job_type=VALUES(job_type),
-                    location=VALUES(location), description=VALUES(description), source_name=VALUES(source_name)`;
-                return new Promise((resolve, reject) => db.query(sql,
-                    [String(title).slice(0,190), board, jobType, String(location).slice(0,190), description.slice(0,12000), "", provider, sourceUrl],
-                    (error, result) => error ? reject(error) : resolve(result.affectedRows > 0)));
-            });
-            Promise.all(tasks).then(results => res.json({
-                success: true, imported: results.filter(Boolean).length,
-                message: `Processed ${records.length} public ${provider} listings.`
-            })).catch(error => sendDatabaseError(res, error));
-        })
-        .catch(error => res.status(502).json({ success: false, message: `Could not import this ${provider} board: ${error.message}` }));
+
+    const urls = {
+        greenhouse: `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(board)}/jobs?content=true`,
+        lever: `https://api.lever.co/v0/postings/${encodeURIComponent(board)}?mode=json`,
+        ashby: `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(board)}`,
+        recruitee: `https://${encodeURIComponent(board)}.recruitee.com/api/offers`,
+        workable: `https://www.workable.com/api/accounts/${encodeURIComponent(board)}?details=true`
+    };
+
+    try {
+        const response = await fetch(urls[provider], {
+            headers: { "Accept": "application/json", "User-Agent": "StudentJobRecommendationSystem/1.0" }
+        });
+        if (!response.ok) throw new Error(`Provider returned HTTP ${response.status}`);
+        const payload = await response.json();
+        const records = getJobRecords(provider, payload);
+        if (!records.length) {
+            return res.json({ success: true, imported: 0, message: "No public listings were returned. Check the board identifier and whether the company publishes a public job feed." });
+        }
+
+        const normalized = records.map(item => normalizePublicJob(provider, item, board)).filter(Boolean);
+        const tasks = normalized.map(job => new Promise((resolve, reject) => {
+            const sql = `INSERT INTO jobs
+                (title,company,job_type,location,description,required_skills,source_name,source_url)
+                VALUES (?,?,?,?,?,?,?,?)
+                ON DUPLICATE KEY UPDATE title=VALUES(title), company=VALUES(company),
+                job_type=VALUES(job_type), location=VALUES(location), description=VALUES(description),
+                source_name=VALUES(source_name)`;
+            db.query(sql, [job.title, job.company, job.jobType, job.location, job.description, "", provider, job.sourceUrl],
+                (error, result) => error ? reject(error) : resolve(result.affectedRows > 0));
+        }));
+
+        const results = await Promise.all(tasks);
+        res.json({
+            success: true,
+            imported: results.filter(Boolean).length,
+            message: `Processed ${normalized.length} valid public ${provider} listings from ${records.length} records.`
+        });
+    } catch (error) {
+        console.error(`Public ${provider} import failed:`, error.message);
+        res.status(502).json({ success: false, message: `Could not import this ${provider} board: ${error.message}` });
+    }
 }
-app.post("/api/admin/import/greenhouse/:board", verifyToken, verifyAdmin, (req, res) => importPublicJobs(req, res, "greenhouse"));
-app.post("/api/admin/import/lever/:board", verifyToken, verifyAdmin, (req, res) => importPublicJobs(req, res, "lever"));
+
+app.post("/api/admin/import/:provider/:board", verifyToken, verifyAdmin, importPublicJobs);
 
 
 // ==========================================
