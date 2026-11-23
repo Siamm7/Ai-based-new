@@ -1728,7 +1728,7 @@ app.post("/api/recruiter/login", function(req, res) {
 });
 
 app.get("/api/admin/recruiter-requests", verifyToken, verifyAdmin, function(req, res) {
-    const sql = "SELECT id, full_name, email, company_name, company_website, job_title, phone, status, created_at, (verification_document_path IS NOT NULL) AS has_verification_document FROM recruiter_accounts ORDER BY CASE WHEN status='pending' THEN 0 ELSE 1 END, created_at DESC";
+    const sql = "SELECT id, full_name, email, company_name, company_website, job_title, phone, status, created_at, (verification_document IS NOT NULL) AS has_verification_document FROM recruiter_accounts ORDER BY CASE WHEN status='pending' THEN 0 ELSE 1 END, created_at DESC";
     db.query(sql, function(error, rows) {
         if (error) return sendDatabaseError(res, error);
         res.json({ success: true, requests: rows });
@@ -1737,14 +1737,12 @@ app.get("/api/admin/recruiter-requests", verifyToken, verifyAdmin, function(req,
 
 app.get("/api/admin/recruiter-requests/:id/document", verifyToken, verifyAdmin, function(req, res) {
     if (!isValidId(req.params.id)) return res.status(400).json({ success: false, message: "Invalid recruiter ID." });
-    db.query("SELECT verification_document_path FROM recruiter_accounts WHERE id=? LIMIT 1", [req.params.id], function(error, rows) {
+    db.query("SELECT verification_document, verification_document_mime FROM recruiter_accounts WHERE id=? LIMIT 1", [req.params.id], function(error, rows) {
         if (error) return sendDatabaseError(res, error);
-        if (!rows.length || !rows[0].verification_document_path) return res.status(404).json({ success: false, message: "Verification document not found." });
-        const filePath = path.resolve(__dirname, rows[0].verification_document_path);
-        if (!filePath.startsWith(recruiterProofFolder + path.sep)) return res.status(400).json({ success: false, message: "Invalid document path." });
-        res.download(filePath, function(downloadError) {
-            if (downloadError && !res.headersSent) res.status(404).json({ success: false, message: "Verification document is unavailable." });
-        });
+        if (!rows.length || !rows[0].verification_document) return res.status(404).json({ success: false, message: "Verification document not found." });
+        res.setHeader("Content-Type", rows[0].verification_document_mime || "application/octet-stream");
+        res.setHeader("Content-Disposition", "inline; filename=\"recruiter-verification-document\"");
+        res.send(rows[0].verification_document);
     });
 });
 
@@ -1840,7 +1838,7 @@ app.use(function(error, req, res, next) {
 async function initializeRecruiterTables() {
     const statements = [
         "CREATE TABLE IF NOT EXISTS recruiter_requests (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, student_id BIGINT NOT NULL, company_name VARCHAR(150) NOT NULL, company_website VARCHAR(255) NULL, contact_person VARCHAR(150) NULL, details TEXT NULL, status VARCHAR(20) NOT NULL DEFAULT 'pending', submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TIMESTAMP NULL, UNIQUE KEY uq_recruiter_request_student (student_id), KEY idx_recruiter_request_status (status))",
-        "CREATE TABLE IF NOT EXISTS recruiter_accounts (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, full_name VARCHAR(150) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, company_name VARCHAR(150) NOT NULL, company_website VARCHAR(255) NULL, job_title VARCHAR(120) NOT NULL, phone VARCHAR(40) NOT NULL, verification_document_path VARCHAR(500) NOT NULL, status VARCHAR(20) NOT NULL DEFAULT 'pending', created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TIMESTAMP NULL, reviewed_by BIGINT NULL, KEY idx_recruiter_status (status))",
+        "CREATE TABLE IF NOT EXISTS recruiter_accounts (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, full_name VARCHAR(150) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, company_name VARCHAR(150) NOT NULL, company_website VARCHAR(255) NULL, job_title VARCHAR(120) NOT NULL, phone VARCHAR(40) NOT NULL, verification_document_path VARCHAR(500) NULL, verification_document MEDIUMBLOB NULL, verification_document_name VARCHAR(255) NULL, verification_document_mime VARCHAR(100) NULL, status VARCHAR(20) NOT NULL DEFAULT 'pending', created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TIMESTAMP NULL, reviewed_by BIGINT NULL, KEY idx_recruiter_status (status))",
         "CREATE TABLE IF NOT EXISTS recruiter_job_owners (job_id BIGINT NOT NULL PRIMARY KEY, recruiter_id BIGINT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_recruiter_owner (recruiter_id))"
     ];
     for (const sql of statements) {
