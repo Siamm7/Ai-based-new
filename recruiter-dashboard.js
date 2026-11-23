@@ -1,8 +1,8 @@
 (() => {
 "use strict";
 const API=window.API_BASE_URL||"http://localhost:5000/api", $=id=>document.getElementById(id);
-const user=()=>{try{return JSON.parse(localStorage.getItem("studentData")||"null")}catch{return null}};
-async function api(path,options={}){const headers={...(options.headers||{}),Authorization:"Bearer "+localStorage.getItem("authToken")};if(options.body!==undefined)headers["Content-Type"]="application/json";const r=await fetch(API+path,{...options,headers});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||"Request failed");return d;}
+const user=()=>{try{return JSON.parse(localStorage.getItem("recruiterData")||"null")}catch{return null}};
+async function api(path,options={}){const headers={...(options.headers||{}),Authorization:"Bearer "+localStorage.getItem("recruiterToken")};if(options.body!==undefined)headers["Content-Type"]="application/json";const r=await fetch(API+path,{...options,headers});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||"Request failed");return d;}
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let jobs=[],apps=[];
 function stats(){$("rdJobs").textContent=jobs.length;$("rdApplicants").textContent=apps.length;$("rdPending").textContent=apps.filter(a=>a.status==="Pending").length;}
@@ -37,7 +37,7 @@ $("recruiterJobForm").addEventListener("submit",async e=>{
 $("rdApplications").addEventListener("click",async e=>{
  const save=e.target.closest("[data-save]"),resume=e.target.closest("[data-resume]");
  if(save){const id=save.dataset.save;try{await api("/recruiter/applications/"+id,{method:"PUT",body:JSON.stringify({status:$("rdStatus"+id).value})});await load();}catch(err){alert(err.message);}}
- if(resume){e.preventDefault();try{const response=await fetch(API+"/recruiter/applications/"+resume.dataset.resume+"/resume",{headers:{Authorization:"Bearer "+localStorage.getItem("authToken")}});if(!response.ok){const d=await response.json().catch(()=>({}));throw new Error(d.message||"Resume download failed");}const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="applicant-resume";a.click();URL.revokeObjectURL(url);}catch(err){alert(err.message);}}
+ if(resume){e.preventDefault();try{const response=await fetch(API+"/recruiter/applications/"+resume.dataset.resume+"/resume",{headers:{Authorization:"Bearer "+localStorage.getItem("recruiterToken")}});if(!response.ok){const d=await response.json().catch(()=>({}));throw new Error(d.message||"Resume download failed");}const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="applicant-resume";a.click();URL.revokeObjectURL(url);}catch(err){alert(err.message);}}
 });
 const u=user();if(!localStorage.getItem("authToken")||!u)location.href="login.html";else if(u.role!=="recruiter")location.href=u.role==="admin"?"admin.html":"recruiter-request.html";else load();
 })();
