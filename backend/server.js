@@ -1571,10 +1571,11 @@ app.post("/api/recommendations", verifyToken, async function(req, res) {
 
             try {
                 const allRecommendations = [];
-                const batchSize = 50;
+                const jobsToAnalyze = jobs.slice(0, 30);
+                const batchSize = 30;
 
-                for (let i = 0; i < jobs.length; i += batchSize) {
-                    const jobBatch = jobs.slice(i, i + batchSize);
+                for (let i = 0; i < jobsToAnalyze.length; i += batchSize) {
+                    const jobBatch = jobsToAnalyze.slice(i, i + batchSize);
 
                     const aiResponse = await fetch(`${aiServiceUrl}/recommend`, {
                         method: "POST",
