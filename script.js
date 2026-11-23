@@ -277,7 +277,7 @@
         <p><strong>Required skills:</strong> ${esc(job.skills.join(", ") || "Not specified")}</p>
         <p><strong>Matched skills:</strong> ${esc(job.match.matched.join(", ") || "None")}</p>
         <p><strong>${job.match.isAI ? "AI match score" : "Keyword skill match"}:</strong> ${job.match.score}%</p>
-        ${job.match.isAI ? `<p><strong>Sentence-BERT semantic score:</strong> ${job.match.semantic.toFixed(1)}%</p><p><strong>Cosine similarity:</strong> ${job.match.cosine.toFixed(4)}</p><p><strong>Keyword match:</strong> ${job.match.keyword.toFixed(1)}%</p>` : ""}
+
         <p><strong>Matched skills:</strong> ${esc(job.match.matched.join(", ") || "None")}</p>
         <p><strong>Missing skills:</strong> ${esc(job.match.missing.join(", ") || "None")}</p>
         <div class="job-actions">
