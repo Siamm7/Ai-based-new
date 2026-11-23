@@ -278,7 +278,6 @@
         <p><strong>Matched skills:</strong> ${esc(job.match.matched.join(", ") || "None")}</p>
         <p><strong>${job.match.isAI ? "AI match score" : "Keyword skill match"}:</strong> ${job.match.score}%</p>
 
-        <p><strong>Matched skills:</strong> ${esc(job.match.matched.join(", ") || "None")}</p>
         <p><strong>Missing skills:</strong> ${esc(job.match.missing.join(", ") || "None")}</p>
         <div class="job-actions">
         <button class="applyBtn" data-id="${Number(job.id)}">Apply Now</button>
