@@ -44,8 +44,6 @@ def health():
     return {"success": True, "service": "sbert-cosine", "model": MODEL_NAME, "model_loaded": model is not None}
 
 @app.post("/recommend")
-
-@app.post("/recommend")
 def recommend(payload: RecommendationRequest):
     if model is None:
         raise HTTPException(
