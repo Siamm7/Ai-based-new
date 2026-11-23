@@ -53,6 +53,8 @@
       e.preventDefault();
       localStorage.removeItem("authToken");
       localStorage.removeItem("studentData");
+      localStorage.removeItem("recruiterToken");
+      localStorage.removeItem("recruiterData");
       location.href = "index.html";
     });
     nav.appendChild(logout);
@@ -93,6 +95,8 @@
       const data = await api("/login", { method: "POST", body: JSON.stringify({
         email: $("loginEmail").value.trim(), password: $("loginPassword").value
       })});
+      localStorage.removeItem("recruiterToken");
+      localStorage.removeItem("recruiterData");
       localStorage.setItem("authToken", data.token);
       setUser(data.student);
       location.href = data.student.role === "admin" ? "admin.html" : "profile.html";
