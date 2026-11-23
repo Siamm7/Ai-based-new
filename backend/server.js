@@ -1557,7 +1557,7 @@ app.post("/api/recommendations", verifyToken, async function(req, res) {
     }
 
     db.query(
-        "SELECT id, title, company, description, required_skills FROM jobs ORDER BY created_at DESC, id DESC",
+        "SELECT id, title, company, description, required_skills FROM jobs ORDER BY id ASC LIMIT 30",
         async function(error, jobs) {
             if (error) return sendDatabaseError(res, error);
 
