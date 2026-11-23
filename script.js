@@ -95,7 +95,7 @@
       })});
       localStorage.setItem("authToken", data.token);
       setUser(data.student);
-      location.href = data.student.role === "admin" ? "admin.html" : data.student.role === "recruiter" ? "recruiter-dashboard.html" : "profile.html";
+      location.href = data.student.role === "admin" ? "admin.html" : "profile.html";
     } catch (err) { statusMessage($("loginMessage"), err.message, true); }
     finally { button.disabled = false; }
   });
