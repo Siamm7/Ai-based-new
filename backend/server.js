@@ -74,6 +74,9 @@ function verifyToken(req, res, next) {
     const token = authHeader.split(" ")[1];
 
     jwt.verify(token, JWT_SECRET, function(error, decoded) {
+        if (!error && decoded && decoded.accountType === "recruiter") {
+            return res.status(401).json({ success: false, message: "Use the recruiter portal for this account." });
+        }
         if (error) {
             return res.status(401).json({
                 success: false,
