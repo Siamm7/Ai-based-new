@@ -1837,7 +1837,6 @@ app.use(function(error, req, res, next) {
 
 async function initializeRecruiterTables() {
     const statements = [
-        "CREATE TABLE IF NOT EXISTS recruiter_requests (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, student_id BIGINT NOT NULL, company_name VARCHAR(150) NOT NULL, company_website VARCHAR(255) NULL, contact_person VARCHAR(150) NULL, details TEXT NULL, status VARCHAR(20) NOT NULL DEFAULT 'pending', submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TIMESTAMP NULL, UNIQUE KEY uq_recruiter_request_student (student_id), KEY idx_recruiter_request_status (status))",
         "CREATE TABLE IF NOT EXISTS recruiter_accounts (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, full_name VARCHAR(150) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, company_name VARCHAR(150) NOT NULL, company_website VARCHAR(255) NULL, job_title VARCHAR(120) NOT NULL, phone VARCHAR(40) NOT NULL, verification_document_path VARCHAR(500) NULL, verification_document MEDIUMBLOB NULL, verification_document_name VARCHAR(255) NULL, verification_document_mime VARCHAR(100) NULL, status VARCHAR(20) NOT NULL DEFAULT 'pending', created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TIMESTAMP NULL, reviewed_by BIGINT NULL, KEY idx_recruiter_status (status))",
         "CREATE TABLE IF NOT EXISTS recruiter_account_job_owners (job_id BIGINT NOT NULL PRIMARY KEY, recruiter_id BIGINT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_recruiter_owner (recruiter_id))"
     ];
