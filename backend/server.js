@@ -1844,6 +1844,23 @@ async function initializeRecruiterTables() {
     for (const sql of statements) {
         await new Promise((resolve, reject) => db.query(sql, error => error ? reject(error) : resolve()));
     }
+    const extraColumns = [
+        ["verification_document", "MEDIUMBLOB NULL"],
+        ["verification_document_name", "VARCHAR(255) NULL"],
+        ["verification_document_mime", "VARCHAR(100) NULL"]
+    ];
+    for (const [column, definition] of extraColumns) {
+        await new Promise((resolve, reject) => {
+            db.query("SHOW COLUMNS FROM recruiter_accounts LIKE ?", [column], function(checkError, rows) {
+                if (checkError) return reject(checkError);
+                if (rows.length) return resolve();
+                db.query("ALTER TABLE recruiter_accounts ADD COLUMN " + column + " " + definition, function(alterError) {
+                    if (alterError) return reject(alterError);
+                    resolve();
+                });
+            });
+        });
+    }
     console.log("Recruiter tables are ready.");
 }
 
