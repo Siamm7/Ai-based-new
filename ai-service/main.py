@@ -3,6 +3,7 @@ import os
 import gc
 import json
 import re
+import threading
 import numpy as np
 
 from fastapi import FastAPI, HTTPException
@@ -29,13 +30,22 @@ class RecommendationRequest(BaseModel):
     jobs: list[Job]
 
 
-@app.on_event("startup")
 def load_model():
     global model
-    model = TextEmbedding(
-        model_name="sentence-transformers/all-MiniLM-L6-v2",
-        threads=1
-    )
+    try:
+        model = TextEmbedding(
+            model_name=MODEL_NAME,
+            threads=1
+        )
+        print("AI embedding model loaded successfully.", flush=True)
+    except Exception as exc:
+        print(f"AI model loading failed: {exc}", flush=True)
+
+
+@app.on_event("startup")
+def start_model_loading():
+    # Do not block Uvicorn from opening its port while the model downloads.
+    threading.Thread(target=load_model, daemon=True).start()
 
 
 def skills_list(value):
