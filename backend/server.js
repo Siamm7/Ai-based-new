@@ -1734,6 +1734,7 @@ app.post("/api/recruiter/login", function(req, res) {
         }
         const token = jwt.sign({ id: account.id, accountType: "recruiter" }, JWT_SECRET, { expiresIn: "1d" });
         delete account.password_hash;
+        account.role = "recruiter";
         res.json({ success: true, token, recruiter: account, message: "Recruiter login successful." });
     });
 });
