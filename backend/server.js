@@ -1614,7 +1614,7 @@ app.post("/api/recommendations", verifyToken, async function(req, res) {
                 }
 
                 allRecommendations.sort(
-                    (a, b) => b.match_score - a.match_score
+                    (a, b) => a.job_id - b.job_id
                 );
 
                 return res.json({
