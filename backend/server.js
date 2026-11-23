@@ -1687,24 +1687,20 @@ app.post("/api/recruiter/register", recruiterProofUpload.single("verification_do
     if (!fullName || fullName.length > 150 || !/^\S+@\S+\.\S+$/.test(email) || email.length > 190 ||
         password.length < 8 || company.length < 2 || company.length > 150 || !jobTitle || jobTitle.length > 120 ||
         !phone || phone.length > 40 || (website && (!/^https?:\/\//i.test(website) || website.length > 255))) {
-        if (req.file) fs.unlink(req.file.path, function(){});
         return res.status(400).json({ success: false, message: "Complete all required fields. Password must be at least 8 characters and website must start with http:// or https://." });
     }
-    if (!req.file) return res.status(400).json({ success: false, message: "A company ID, authorization letter or other proof document is required." });
+    if (!req.file) return res.status(400).json({ success: false, message: "A company authorization letter or other proof of employment is required." });
     try {
         const passwordHash = await bcrypt.hash(password, 10);
-        const relativePath = path.relative(__dirname, req.file.path).replace(/\\/g, "/");
-        const sql = "INSERT INTO recruiter_accounts (full_name, email, password_hash, company_name, company_website, job_title, phone, verification_document_path, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')";
-        db.query(sql, [fullName, email, passwordHash, company, website || null, jobTitle, phone, relativePath], function(error, result) {
+        const sql = "INSERT INTO recruiter_accounts (full_name, email, password_hash, company_name, company_website, job_title, phone, verification_document_path, verification_document, verification_document_name, verification_document_mime, status) VALUES (?, ?, ?, ?, ?, ?, ?, '', ?, ?, ?, 'pending')";
+        db.query(sql, [fullName, email, passwordHash, company, website || null, jobTitle, phone, req.file.buffer, path.basename(req.file.originalname), req.file.mimetype], function(error, result) {
             if (error) {
-                fs.unlink(req.file.path, function(){});
                 if (error.code === "ER_DUP_ENTRY") return res.status(409).json({ success: false, message: "An account already exists with this email address." });
                 return sendDatabaseError(res, error);
             }
             res.status(201).json({ success: true, message: "Registration submitted. Your account is pending admin verification. You can log in after approval." });
         });
     } catch (error) {
-        if (req.file) fs.unlink(req.file.path, function(){});
         console.error("Recruiter registration error:", error);
         res.status(500).json({ success: false, message: "Could not submit recruiter registration." });
     }
