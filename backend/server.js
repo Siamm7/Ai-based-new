@@ -1740,9 +1740,10 @@ app.get("/api/admin/recruiter-requests/:id/document", verifyToken, verifyAdmin, 
     db.query("SELECT verification_document, verification_document_mime FROM recruiter_accounts WHERE id=? LIMIT 1", [req.params.id], function(error, rows) {
         if (error) return sendDatabaseError(res, error);
         if (!rows.length || !rows[0].verification_document) return res.status(404).json({ success: false, message: "Verification document not found." });
-        res.setHeader("Content-Type", rows[0].verification_document_mime || "application/octet-stream");
-        res.setHeader("Content-Disposition", "inline; filename=\"recruiter-verification-document\"");
-        res.send(rows[0].verification_document);
+        res.setHeader("Content-Type", "application/octet-stream");
+        res.setHeader("Content-Disposition", "attachment; filename=\"recruiter-verification-document\"");
+        res.setHeader("X-Content-Type-Options", "nosniff");
+            res.send(rows[0].verification_document);
     });
 });
 
