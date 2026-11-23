@@ -255,7 +255,12 @@
     const filtered = jobs.map(j => ({ ...j, match: matchScore(j, user) }))
       .filter(j => (type === "All" || j.type.toLowerCase() === type.toLowerCase()) &&
         `${j.title} ${j.company} ${j.location} ${j.skills.join(" ")}`.toLowerCase().includes(search))
-      .sort((a,b) => b.match.score - a.match.score);
+      .sort((a, b) => {
+        const aHasAI = aiRecommendations.has(Number(a.id));
+        const bHasAI = aiRecommendations.has(Number(b.id));
+        if (aHasAI !== bHasAI) return aHasAI ? -1 : 1;
+        return Number(a.id) - Number(b.id);
+      });
     jobsContainer.innerHTML = "";
     if (!filtered.length) {
       if ($("noJobsMessage")) $("noJobsMessage").textContent = "No jobs found in the database. Try another search or ask an admin to add opportunities.";
