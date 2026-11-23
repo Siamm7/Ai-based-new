@@ -42,7 +42,7 @@
         "<p><b>Position:</b> "+esc(r.job_title)+" · <b>Phone:</b> "+esc(r.phone)+"</p>"+
         "<p><b>Company website:</b> "+website+"</p>"+
         "<p><b>Submitted:</b> "+esc(r.created_at)+"</p>"+
-        (r.has_verification_document ? '<p><button data-recruiter-proof="'+r.id+'">View verification document</button></p>' : "<p><b>Verification document:</b> Missing</p>")+
+        (r.has_verification_document ? '<p><button data-recruiter-proof="'+r.id+'">Download verification document</button></p>' : "<p><b>Verification document:</b> Missing</p>")+
         (r.status==="pending" ? '<button data-recruiter-approve="'+r.id+'">Approve</button><button class="delete-btn" data-recruiter-reject="'+r.id+'">Reject</button>' : "");
       box.appendChild(card);
     });
@@ -50,13 +50,13 @@
   $("recruiterRequestsContainer")?.addEventListener("click",async e=>{
     const proof=e.target.closest("[data-recruiter-proof]");
     if(proof){
-      const popup=window.open("about:blank","_blank");
       try{
         const response=await fetch(API+"/admin/recruiter-requests/"+proof.dataset.recruiterProof+"/document",{headers:{Authorization:"Bearer "+getToken()}});
-        if(!response.ok)throw new Error("Could not open verification document.");
-        const blob=await response.blob(),url=URL.createObjectURL(blob);
-        if(popup)popup.location.href=url;else window.location.href=url;
-      }catch(err){if(popup)popup.close();msg(err.message,true);}
+        if(!response.ok)throw new Error("Could not download verification document.");
+        const blob=await response.blob(),url=URL.createObjectURL(blob),link=document.createElement("a");
+        link.href=url;link.download="recruiter-verification-"+proof.dataset.recruiterProof;document.body.appendChild(link);link.click();link.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+      }catch(err){msg(err.message,true);}
       return;
     }
     const approve=e.target.closest("[data-recruiter-approve]"), reject=e.target.closest("[data-recruiter-reject]");
