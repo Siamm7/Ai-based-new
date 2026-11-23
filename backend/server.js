@@ -1757,7 +1757,7 @@ app.put("/api/admin/recruiter-requests/:id", verifyToken, verifyAdmin, function(
 });
 
 app.get("/api/recruiter/jobs", verifyRecruiterToken, verifyRecruiter, function(req, res) {
-    db.query("SELECT j.* FROM jobs j JOIN recruiter_job_owners o ON o.job_id=j.id WHERE o.recruiter_id=? ORDER BY j.id DESC", [req.user.id], function(error, rows) {
+    db.query("SELECT j.* FROM jobs j JOIN recruiter_account_job_owners o ON o.job_id=j.id WHERE o.recruiter_id=? ORDER BY j.id DESC", [req.user.id], function(error, rows) {
         if (error) return sendDatabaseError(res, error);
         res.json({ success: true, jobs: rows });
     });
@@ -1770,7 +1770,7 @@ app.post("/api/recruiter/jobs", verifyRecruiterToken, verifyRecruiter, function(
         [String(title).trim(), String(company).trim(), job_type || null, location || null, description || null, required_skills || null],
         function(error, result) {
             if (error) return sendDatabaseError(res, error);
-            db.query("INSERT INTO recruiter_job_owners (job_id, recruiter_id) VALUES (?, ?)", [result.insertId, req.user.id], function(ownerError) {
+            db.query("INSERT INTO recruiter_account_job_owners (job_id, recruiter_id) VALUES (?, ?)", [result.insertId, req.user.id], function(ownerError) {
                 if (ownerError) {
                     db.query("DELETE FROM jobs WHERE id=?", [result.insertId]);
                     return sendDatabaseError(res, ownerError);
@@ -1781,7 +1781,7 @@ app.post("/api/recruiter/jobs", verifyRecruiterToken, verifyRecruiter, function(
 });
 
 app.get("/api/recruiter/applications", verifyRecruiterToken, verifyRecruiter, function(req, res) {
-    const sql = "SELECT a.id, a.student_id, a.job_id, a.status, a.cover_letter, a.applied_at, s.full_name, s.email, s.university, s.department, s.skills, s.resume_path, j.title, j.company FROM applications a JOIN students s ON s.id=a.student_id JOIN jobs j ON j.id=a.job_id JOIN recruiter_job_owners o ON o.job_id=j.id WHERE o.recruiter_id=? ORDER BY a.applied_at DESC";
+    const sql = "SELECT a.id, a.student_id, a.job_id, a.status, a.cover_letter, a.applied_at, s.full_name, s.email, s.university, s.department, s.skills, s.resume_path, j.title, j.company FROM applications a JOIN students s ON s.id=a.student_id JOIN jobs j ON j.id=a.job_id JOIN recruiter_account_job_owners o ON o.job_id=j.id WHERE o.recruiter_id=? ORDER BY a.applied_at DESC";
     db.query(sql, [req.user.id], function(error, rows) {
         if (error) return sendDatabaseError(res, error);
         res.json({ success: true, applications: rows });
@@ -1791,7 +1791,7 @@ app.get("/api/recruiter/applications", verifyRecruiterToken, verifyRecruiter, fu
 app.put("/api/recruiter/applications/:id", verifyRecruiterToken, verifyRecruiter, function(req, res) {
     const applicationId = req.params.id, status = String(req.body.status || "");
     if (!isValidId(applicationId) || !["Pending", "Reviewed", "Accepted", "Rejected"].includes(status)) return res.status(400).json({ success: false, message: "Invalid application or status." });
-    const sql = "UPDATE applications a JOIN recruiter_job_owners o ON o.job_id=a.job_id SET a.status=? WHERE a.id=? AND o.recruiter_id=?";
+    const sql = "UPDATE applications a JOIN recruiter_account_job_owners o ON o.job_id=a.job_id SET a.status=? WHERE a.id=? AND o.recruiter_id=?";
     db.query(sql, [status, applicationId, req.user.id], function(error, result) {
         if (error) return sendDatabaseError(res, error);
         if (!result.affectedRows) return res.status(404).json({ success: false, message: "Application not found for your jobs." });
@@ -1801,7 +1801,7 @@ app.put("/api/recruiter/applications/:id", verifyRecruiterToken, verifyRecruiter
 
 app.get("/api/recruiter/applications/:id/resume", verifyRecruiterToken, verifyRecruiter, function(req, res) {
     if (!isValidId(req.params.id)) return res.status(400).json({ success: false, message: "Invalid application ID." });
-    const sql = "SELECT s.resume_path FROM applications a JOIN students s ON s.id=a.student_id JOIN recruiter_job_owners o ON o.job_id=a.job_id WHERE a.id=? AND o.recruiter_id=? LIMIT 1";
+    const sql = "SELECT s.resume_path FROM applications a JOIN students s ON s.id=a.student_id JOIN recruiter_account_job_owners o ON o.job_id=a.job_id WHERE a.id=? AND o.recruiter_id=? LIMIT 1";
     db.query(sql, [req.params.id, req.user.id], function(error, rows) {
         if (error) return sendDatabaseError(res, error);
         if (!rows.length || !rows[0].resume_path) return res.status(404).json({ success: false, message: "Resume not available." });
@@ -1839,7 +1839,7 @@ async function initializeRecruiterTables() {
     const statements = [
         "CREATE TABLE IF NOT EXISTS recruiter_requests (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, student_id BIGINT NOT NULL, company_name VARCHAR(150) NOT NULL, company_website VARCHAR(255) NULL, contact_person VARCHAR(150) NULL, details TEXT NULL, status VARCHAR(20) NOT NULL DEFAULT 'pending', submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TIMESTAMP NULL, UNIQUE KEY uq_recruiter_request_student (student_id), KEY idx_recruiter_request_status (status))",
         "CREATE TABLE IF NOT EXISTS recruiter_accounts (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, full_name VARCHAR(150) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, company_name VARCHAR(150) NOT NULL, company_website VARCHAR(255) NULL, job_title VARCHAR(120) NOT NULL, phone VARCHAR(40) NOT NULL, verification_document_path VARCHAR(500) NULL, verification_document MEDIUMBLOB NULL, verification_document_name VARCHAR(255) NULL, verification_document_mime VARCHAR(100) NULL, status VARCHAR(20) NOT NULL DEFAULT 'pending', created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TIMESTAMP NULL, reviewed_by BIGINT NULL, KEY idx_recruiter_status (status))",
-        "CREATE TABLE IF NOT EXISTS recruiter_job_owners (job_id BIGINT NOT NULL PRIMARY KEY, recruiter_id BIGINT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_recruiter_owner (recruiter_id))"
+        "CREATE TABLE IF NOT EXISTS recruiter_account_job_owners (job_id BIGINT NOT NULL PRIMARY KEY, recruiter_id BIGINT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_recruiter_owner (recruiter_id))"
     ];
     for (const sql of statements) {
         await new Promise((resolve, reject) => db.query(sql, error => error ? reject(error) : resolve()));
