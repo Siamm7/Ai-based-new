@@ -1591,6 +1591,35 @@ app.post("/api/recommendations", verifyToken, async function(req, res) {
             }
 
             try {
+                // Wake the AI service and wait until its embedding model is ready.
+                // Render free instances may sleep, and the model loads after Uvicorn starts.
+                let modelReady = false;
+                for (let attempt = 1; attempt <= 40; attempt++) {
+                    try {
+                        const healthResponse = await fetch(`${aiServiceUrl}/health`);
+                        if (healthResponse.ok) {
+                            const health = await healthResponse.json();
+                            if (health.model_loaded === true) {
+                                modelReady = true;
+                                break;
+                            }
+                        }
+                    } catch (healthError) {
+                        console.warn(`AI service is waking up (attempt ${attempt}/40):`, healthError.message);
+                    }
+
+                    if (attempt < 40) {
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                    }
+                }
+
+                if (!modelReady) {
+                    return res.status(503).json({
+                        success: false,
+                        message: "The AI service is starting and its model is not ready yet. Please try again in a minute."
+                    });
+                }
+
                 const allRecommendations = [];
                 const jobsToAnalyze = jobs.slice(0, 30);
                 const batchSize = 30;
