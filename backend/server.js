@@ -1687,10 +1687,10 @@ app.put("/api/admin/recruiter-requests/:id", verifyToken, verifyAdmin, function(
         if (error) return sendDatabaseError(res, error);
         if (!rows.length) return res.status(404).json({ success: false, message: "Recruiter request not found." });
         const studentId = rows[0].student_id;
-        db.query("UPDATE recruiter_requests SET status=?, reviewed_at=CURRENT_TIMESTAMP WHERE id=?", [status, requestId], function(updateError) {
-            if (updateError) return sendDatabaseError(res, updateError);
-            db.query("UPDATE students SET role=? WHERE id=?", [status === "approved" ? "recruiter" : "student", studentId], function(roleError) {
-                if (roleError) return sendDatabaseError(res, roleError);
+        db.query("UPDATE students SET role=? WHERE id=?", [status === "approved" ? "recruiter" : "student", studentId], function(roleError) {
+            if (roleError) return sendDatabaseError(res, roleError);
+            db.query("UPDATE recruiter_requests SET status=?, reviewed_at=CURRENT_TIMESTAMP WHERE id=?", [status, requestId], function(updateError) {
+                if (updateError) return sendDatabaseError(res, updateError);
                 res.json({ success: true, message: status === "approved" ? "Recruiter approved. They can now log in to the recruiter dashboard." : "Recruiter request rejected." });
             });
         });
