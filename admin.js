@@ -12,13 +12,13 @@
     const r=await fetch(API+path,{...options,headers}); const d=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(d.message||`Request failed (${r.status})`); return d;
   }
-  let jobs=[], applications=[];
+  let jobs=[], applications=[], recruiterRequests=[];
   const msg=(text,bad=false)=>{ if($("adminMessage")){$("adminMessage").textContent=text;$("adminMessage").style.color=bad?"#b91c1c":"#15803d";} };
   async function init(){
     const user=getUser();
     if(!getToken()||!user){alert("Please log in as an admin.");location.href="login.html";return;}
     if(user.role!=="admin"){alert("Admin access required.");location.href="index.html";return;}
-    try { await Promise.all([loadJobs(),loadApplications()]); }
+    try { await Promise.all([loadJobs(),loadApplications(),loadRecruiterRequests()]); }
     catch(e){msg(e.message,true);}
   }
   async function loadJobs(){
@@ -27,6 +27,35 @@
   async function loadApplications(){
     const d=await api("/admin/applications"); applications=d.applications||[]; renderApplications();
   }
+
+  async function loadRecruiterRequests(){
+    const d=await api("/admin/recruiter-requests"); recruiterRequests=d.requests||[]; renderRecruiterRequests();
+  }
+  function renderRecruiterRequests(){
+    const box=$("recruiterRequestsContainer"); if(!box)return; box.innerHTML="";
+    if(!recruiterRequests.length){box.innerHTML="<p>No recruiter requests yet.</p>";return;}
+    recruiterRequests.forEach(r=>{
+      const card=document.createElement("article");card.className="application-item";
+      const website=r.company_website ? '<a href="'+esc(r.company_website)+'" target="_blank" rel="noopener noreferrer">'+esc(r.company_website)+'</a>' : "Not provided";
+      card.innerHTML="<h3>"+esc(r.company_name)+" · "+esc(r.status)+"</h3>"+
+        "<p><b>Applicant:</b> "+esc(r.full_name)+" ("+esc(r.email)+")</p>"+
+        "<p><b>University:</b> "+esc(r.university||"Not provided")+" · "+esc(r.department||"")+"</p>"+
+        "<p><b>Website:</b> "+website+"</p><p><b>Contact:</b> "+esc(r.contact_person||"Not provided")+"</p>"+
+        "<p>"+esc(r.details||"No additional details.")+"</p><p><b>Submitted:</b> "+esc(r.submitted_at)+"</p>"+
+        (r.status==="pending" ? '<button data-recruiter-approve="'+r.id+'">Approve</button><button class="delete-btn" data-recruiter-reject="'+r.id+'">Reject</button>' : "");
+      box.appendChild(card);
+    });
+  }
+  $("recruiterRequestsContainer")?.addEventListener("click",async e=>{
+    const approve=e.target.closest("[data-recruiter-approve]"), reject=e.target.closest("[data-recruiter-reject]");
+    if(!approve&&!reject)return;
+    const id=approve ? approve.dataset.recruiterApprove : reject.dataset.recruiterReject;
+    const status=approve ? "approved" : "rejected";
+    if(!confirm(status==="approved" ? "Approve this recruiter? They can publish jobs and manage applications for their own jobs." : "Reject this recruiter request?"))return;
+    try{await api("/admin/recruiter-requests/"+id,{method:"PUT",body:JSON.stringify({status})});msg("Recruiter request "+status+".");await loadRecruiterRequests();}
+    catch(err){msg(err.message,true);}
+  });
+
   function renderStats(){
     $("totalJobs").textContent=jobs.length;
     $("totalApplications").textContent=applications.length;
