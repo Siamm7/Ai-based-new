@@ -762,7 +762,7 @@ app.delete("/api/students/:id/resume", verifyToken, function(req, res) {
 // ==========================================
 
 app.get("/api/jobs", function(req, res) {
-    const sql = "SELECT * FROM jobs ORDER BY created_at DESC";
+    const sql = "SELECT * FROM jobs ORDER BY created_at DESC, id DESC";
 
     db.query(sql, function(error, results) {
         if (error) return sendDatabaseError(res, error);
@@ -1557,7 +1557,7 @@ app.post("/api/recommendations", verifyToken, async function(req, res) {
     }
 
     db.query(
-        "SELECT id, title, company, description, required_skills FROM jobs ORDER BY created_at DESC",
+        "SELECT id, title, company, description, required_skills FROM jobs ORDER BY created_at DESC, id DESC",
         async function(error, jobs) {
             if (error) return sendDatabaseError(res, error);
 
