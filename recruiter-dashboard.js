@@ -27,7 +27,7 @@ function renderApps(){
 }
 async function load(){
  try{const pair=await Promise.all([api("/recruiter/jobs"),api("/recruiter/applications")]);jobs=pair[0].jobs||[];apps=pair[1].applications||[];stats();renderJobs();renderApps();}
- catch(e){$("rdApplications").textContent=e.message;if(e.message.toLowerCase().includes("approved recruiter"))location.href="recruiter-login.html";}
+ catch(e){$("rdApplications").textContent=e.message;if(e.message.toLowerCase().includes("recruiter")||e.message.toLowerCase().includes("session"))location.href="recruiter-login.html";}
 }
 $("recruiterJobForm").addEventListener("submit",async e=>{
  e.preventDefault();const b=$("rdPublish");b.disabled=true;$("rdJobMessage").textContent="Publishing…";
