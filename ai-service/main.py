@@ -1,55 +1,73 @@
+
 import os
-from typing import Any
+import gc
+import json
+import numpy as np
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
+from fastembed import TextEmbedding
 
-MODEL_NAME = os.getenv("SBERT_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
-app = FastAPI(title="Job Recommendation AI Service", version="1.0.0")
+MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+
+app = FastAPI(title="Job Recommendation AI Service", version="2.0.0")
+
 model = None
+
 
 class Job(BaseModel):
     id: int
     title: str = ""
     company: str = ""
     description: str = ""
-    required_skills: Any = ""
+    required_skills: object = ""
+
 
 class RecommendationRequest(BaseModel):
     cv_text: str = Field(min_length=20, max_length=30000)
     jobs: list[Job]
 
+
 @app.on_event("startup")
 def load_model():
     global model
-    model = SentenceTransformer(MODEL_NAME)
+    model = TextEmbedding(
+        model_name="sentence-transformers/all-MiniLM-L6-v2",
+        threads=1
+    )
+
 
 def skills_list(value):
     if isinstance(value, list):
         return [str(x).strip() for x in value if str(x).strip()]
+
     if not value:
         return []
-    import json
+
     try:
         parsed = json.loads(value) if isinstance(value, str) else value
         if isinstance(parsed, list):
             return [str(x).strip() for x in parsed if str(x).strip()]
     except Exception:
         pass
+
     return [x.strip() for x in str(value).split(",") if x.strip()]
+
 
 @app.get("/health")
 def health():
-    return {"success": True, "service": "sbert-cosine", "model": MODEL_NAME, "model_loaded": model is not None}
+    return {
+        "success": True,
+        "service": "fastembed-cosine",
+        "model": MODEL_NAME,
+        "model_loaded": model is not None
+    }
+
 
 @app.post("/recommend")
 def recommend(payload: RecommendationRequest):
     if model is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Sentence-BERT model is not loaded yet."
-        )
+        raise HTTPException(status_code=503, detail="AI model not loaded")
 
     if not payload.jobs:
         return {
@@ -58,51 +76,46 @@ def recommend(payload: RecommendationRequest):
             "recommendations": []
         }
 
-    import gc
+    cv = payload.cv_text.strip().lower()[:12000]
 
-    cv = payload.cv_text.strip().lower()
-
-    # Encode the CV only once.
-    cv_embedding = model.encode(
-        [cv[:12000]],
-        normalize_embeddings=True,
-        convert_to_numpy=True,
-        batch_size=1
+    cv_embedding = next(
+        model.query_embed(cv)
     )
 
     results = []
-    batch_size = 8
+    batch_size = 4
 
-    # Process jobs in small batches to reduce RAM usage.
     for start in range(0, len(payload.jobs), batch_size):
         batch = payload.jobs[start:start + batch_size]
+
         job_texts = []
+        batch_skills = []
 
         for job in batch:
             skills = skills_list(job.required_skills)
+            batch_skills.append(skills)
 
-            combined = " ".join([
-                str(job.title or ""),
-                str(job.company or ""),
-                str(job.description or ""),
+            text = " ".join([
+                job.title or "",
+                job.company or "",
+                job.description or "",
                 "Required skills: " + ", ".join(skills)
             ])
 
-            job_texts.append(combined[:1500] or "Job")
+            job_texts.append(text[:1500] or "Job")
 
-        job_embeddings = model.encode(
-            job_texts,
-            normalize_embeddings=True,
-            convert_to_numpy=True,
-            batch_size=2
-        )
-
-        semantic_scores = cosine_similarity(
-            cv_embedding, job_embeddings
-        )[0]
+        embeddings = list(model.embed(job_texts))
 
         for index, job in enumerate(batch):
-            skills = skills_list(job.required_skills)
+            job_embedding = embeddings[index]
+
+            semantic_score = float(
+                np.dot(cv_embedding, job_embedding)
+            ) * 100
+
+            semantic_score = max(0.0, min(100.0, semantic_score))
+
+            skills = batch_skills[index]
 
             matched = [
                 skill for skill in skills
@@ -118,11 +131,6 @@ def recommend(payload: RecommendationRequest):
                 len(matched) / len(skills) * 100
             ) if skills else 0.0
 
-            semantic_score = max(
-                0.0,
-                min(100.0, float(semantic_scores[index]) * 100.0)
-            )
-
             final_score = (
                 0.70 * semantic_score +
                 0.30 * keyword_score
@@ -131,16 +139,14 @@ def recommend(payload: RecommendationRequest):
             results.append({
                 "job_id": job.id,
                 "semantic_score": round(semantic_score, 2),
-                "cosine_similarity": round(
-                    float(semantic_scores[index]), 4
-                ),
+                "cosine_similarity": round(semantic_score / 100, 4),
                 "keyword_score": round(keyword_score, 2),
                 "match_score": round(final_score, 2),
                 "matched_skills": matched,
                 "missing_skills": missing
             })
 
-        del job_embeddings, job_texts, semantic_scores
+        del embeddings, job_texts, batch_skills
         gc.collect()
 
     results.sort(
