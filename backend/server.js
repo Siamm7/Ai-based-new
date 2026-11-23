@@ -164,16 +164,8 @@ const upload = multer({
         callback(new Error("Only PDF and DOCX files are allowed!"));
     }
 });
-const recruiterProofFolder = path.join(__dirname, "uploads", "recruiter-verification");
-if (!fs.existsSync(recruiterProofFolder)) fs.mkdirSync(recruiterProofFolder, { recursive: true });
-
-const recruiterProofStorage = multer.diskStorage({
-    destination: function(req, file, callback) { callback(null, recruiterProofFolder); },
-    filename: function(req, file, callback) {
-        const extension = path.extname(file.originalname).toLowerCase();
-        callback(null, Date.now() + "-" + crypto.randomBytes(10).toString("hex") + extension);
-    }
-});
+// Store verification documents in TiDB so they survive Render restarts and redeploys.
+const recruiterProofStorage = multer.memoryStorage();
 const recruiterProofUpload = multer({
     storage: recruiterProofStorage,
     limits: { fileSize: 5 * 1024 * 1024 },
