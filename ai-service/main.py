@@ -2,6 +2,7 @@
 import os
 import gc
 import json
+import re
 import numpy as np
 
 from fastapi import FastAPI, HTTPException
@@ -52,6 +53,63 @@ def skills_list(value):
         pass
 
     return [x.strip() for x in str(value).split(",") if x.strip()]
+
+
+# Normalize common names and abbreviations without treating related technologies
+# (for example, PostgreSQL and SQL) as interchangeable.
+SKILL_ALIASES = {
+    "javascript": ["javascript", "java script", "js"],
+    "typescript": ["typescript", "type script"],
+    "react": ["react", "react.js", "reactjs"],
+    "node.js": ["node.js", "nodejs", "node js"],
+    "next.js": ["next.js", "nextjs", "next js"],
+    "vue.js": ["vue.js", "vuejs", "vue js"],
+    "angular": ["angular", "angular.js", "angularjs"],
+    "html": ["html", "html5"],
+    "css": ["css", "css3"],
+    "object-oriented programming": [
+        "object-oriented programming",
+        "object oriented programming",
+        "oop"
+    ],
+    "c++": ["c++", "cpp"],
+    "c#": ["c#", "c sharp"],
+    "postgresql": ["postgresql", "postgres"],
+    "mongodb": ["mongodb", "mongo db"],
+    " amazon web services ": ["aws", "amazon web services"],
+}
+
+ALIAS_LOOKUP = {
+    alias.strip(): canonical.strip()
+    for canonical, aliases in SKILL_ALIASES.items()
+    for alias in aliases
+}
+
+
+def normalize_skill_text(value):
+    text = str(value or "").lower()
+
+    for alias in sorted(ALIAS_LOOKUP, key=len, reverse=True):
+        canonical = ALIAS_LOOKUP[alias]
+        pattern = r"(?<![a-z0-9])" + re.escape(alias) + r"(?![a-z0-9])"
+        text = re.sub(pattern, canonical, text)
+
+    return re.sub(r"\\s+", " ", text).strip()
+
+
+def contains_skill(cv_text, required_skill):
+    normalized_cv = normalize_skill_text(cv_text)
+    normalized_skill = normalize_skill_text(required_skill)
+
+    if not normalized_skill:
+        return False
+
+    pattern = (
+        r"(?<![a-z0-9])"
+        + re.escape(normalized_skill)
+        + r"(?![a-z0-9])"
+    )
+    return re.search(pattern, normalized_cv) is not None
 
 
 @app.get("/health")
@@ -119,12 +177,12 @@ def recommend(payload: RecommendationRequest):
 
             matched = [
                 skill for skill in skills
-                if skill.lower() in cv
+                if contains_skill(cv, skill)
             ]
 
             missing = [
                 skill for skill in skills
-                if skill.lower() not in cv
+                if not contains_skill(cv, skill)
             ]
 
             keyword_score = (
