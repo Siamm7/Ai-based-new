@@ -1536,8 +1536,10 @@ app.post("/api/admin/import/:provider/:board", verifyToken, verifyAdmin, importP
 // ==========================================
 // SENTENCE-BERT + COSINE SIMILARITY RECOMMENDATIONS
 // ==========================================
+
 app.post("/api/recommendations", verifyToken, async function(req, res) {
     const cvText = String(req.body.cv_text || "").trim();
+
     if (cvText.length < 20 || cvText.length > 30000) {
         return res.status(400).json({
             success: false,
@@ -1546,6 +1548,7 @@ app.post("/api/recommendations", verifyToken, async function(req, res) {
     }
 
     const aiServiceUrl = String(process.env.AI_SERVICE_URL || "").replace(/\/+$/, "");
+
     if (!aiServiceUrl) {
         return res.status(503).json({
             success: false,
@@ -1557,41 +1560,75 @@ app.post("/api/recommendations", verifyToken, async function(req, res) {
         "SELECT id, title, company, description, required_skills FROM jobs ORDER BY created_at DESC",
         async function(error, jobs) {
             if (error) return sendDatabaseError(res, error);
+
             if (!jobs.length) {
-                return res.json({ success: true, recommendations: [], message: "No jobs are available yet." });
+                return res.json({
+                    success: true,
+                    recommendations: [],
+                    message: "No jobs are available yet."
+                });
             }
 
             try {
-                const aiResponse = await fetch(`${aiServiceUrl}/recommend`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "Accept": "application/json" },
-                    body: JSON.stringify({ cv_text: cvText, jobs: jobs.slice(0, 50) })
+                const allRecommendations = [];
+                const batchSize = 50;
+
+                for (let i = 0; i < jobs.length; i += batchSize) {
+                    const jobBatch = jobs.slice(i, i + batchSize);
+
+                    const aiResponse = await fetch(`${aiServiceUrl}/recommend`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json"
+                        },
+                        body: JSON.stringify({
+                            cv_text: cvText,
+                            jobs: jobBatch
+                        })
+                    });
+
+                    const responseText = await aiResponse.text();
+
+                    let payload = {};
+                    try {
+                        payload = JSON.parse(responseText);
+                    } catch (parseError) {
+                        payload = { raw_response: responseText };
+                    }
+
+                    if (!aiResponse.ok) {
+                        console.error("AI SERVICE STATUS:", aiResponse.status);
+                        console.error("AI SERVICE RESPONSE:", responseText);
+
+                        return res.status(502).json({
+                            success: false,
+                            message: payload.detail || payload.message || responseText
+                        });
+                    }
+
+                    allRecommendations.push(
+                        ...(payload.recommendations || [])
+                    );
+                }
+
+                allRecommendations.sort(
+                    (a, b) => b.match_score - a.match_score
+                );
+
+                return res.json({
+                    success: true,
+                    model: "sentence-transformers/all-MiniLM-L6-v2",
+                    scoring: "70% semantic cosine similarity + 30% keyword skill overlap",
+                    recommendations: allRecommendations
                 });
-               const responseText = await aiResponse.text();
 
-let payload = {};
-try {
-    payload = JSON.parse(responseText);
-} catch (error) {
-    payload = { raw_response: responseText };
-}
-
-if (!aiResponse.ok) {
-    console.error("AI SERVICE STATUS:", aiResponse.status);
-    console.error("AI SERVICE RESPONSE:", responseText);
-
-    return res.status(502).json({
-        success: false,
-        message: payload.detail || payload.message || responseText || "AI recommendation service returned an error."
-    });
-}
-                
-                return res.json(payload);
             } catch (aiError) {
                 console.error("AI service connection failed:", aiError);
+
                 return res.status(502).json({
                     success: false,
-                    message: "Could not connect to the Sentence-BERT service. Check AI_SERVICE_URL and ensure the AI service is running."
+                    message: "Could not connect to the AI recommendation service. Check AI_SERVICE_URL and ensure the AI service is running."
                 });
             }
         }
