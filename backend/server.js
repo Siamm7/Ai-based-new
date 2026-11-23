@@ -164,6 +164,32 @@ const upload = multer({
         callback(new Error("Only PDF and DOCX files are allowed!"));
     }
 });
+const recruiterProofFolder = path.join(__dirname, "uploads", "recruiter-verification");
+if (!fs.existsSync(recruiterProofFolder)) fs.mkdirSync(recruiterProofFolder, { recursive: true });
+
+const recruiterProofStorage = multer.diskStorage({
+    destination: function(req, file, callback) { callback(null, recruiterProofFolder); },
+    filename: function(req, file, callback) {
+        const extension = path.extname(file.originalname).toLowerCase();
+        callback(null, Date.now() + "-" + crypto.randomBytes(10).toString("hex") + extension);
+    }
+});
+const recruiterProofUpload = multer({
+    storage: recruiterProofStorage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: function(req, file, callback) {
+        const extension = path.extname(file.originalname).toLowerCase();
+        const allowed = {
+            ".pdf": ["application/pdf"],
+            ".png": ["image/png"],
+            ".jpg": ["image/jpeg"],
+            ".jpeg": ["image/jpeg"]
+        };
+        if (allowed[extension] && allowed[extension].includes(file.mimetype)) return callback(null, true);
+        callback(new Error("Upload a PDF, JPG or PNG verification document."));
+    }
+});
+
 
 function deleteResumeFile(filePath) {
     if (!filePath) return;
@@ -1638,73 +1664,119 @@ app.post("/api/recommendations", verifyToken, async function(req, res) {
 
 // ==========================================
 
+
+function verifyRecruiterToken(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) return res.status(401).json({ success: false, message: "Please log in through the recruiter portal." });
+    jwt.verify(authHeader.split(" ")[1], JWT_SECRET, function(error, decoded) {
+        if (error || !decoded || decoded.accountType !== "recruiter") return res.status(401).json({ success: false, message: "Invalid recruiter session. Please log in again." });
+        db.query("SELECT id, email, full_name, company_name, company_website, job_title, phone, status FROM recruiter_accounts WHERE id=? LIMIT 1", [decoded.id], function(dbError, rows) {
+            if (dbError) return sendDatabaseError(res, dbError);
+            if (!rows.length) return res.status(401).json({ success: false, message: "Recruiter account not found." });
+            req.user = rows[0];
+            next();
+        });
+    });
+}
+
 function verifyRecruiter(req, res, next) {
-    if (!req.user || req.user.role !== "recruiter") return res.status(403).json({ success: false, message: "Approved recruiter access required." });
+    if (!req.user || req.user.status !== "approved") return res.status(403).json({ success: false, message: "Your recruiter account is not approved." });
     next();
 }
 
-app.post("/api/recruiter/requests", verifyToken, function(req, res) {
-    if (req.user.role !== "student") return res.status(403).json({ success: false, message: "Only student accounts can request recruiter access." });
+app.post("/api/recruiter/register", recruiterProofUpload.single("verification_document"), async function(req, res) {
+    const fullName = String(req.body.full_name || "").trim();
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
     const company = String(req.body.company_name || "").trim();
     const website = String(req.body.company_website || "").trim();
-    const contact = String(req.body.contact_person || "").trim();
-    const details = String(req.body.details || "").trim();
-    if (company.length < 2 || company.length > 150) return res.status(400).json({ success: false, message: "Enter a valid company name (2–150 characters)." });
-    if (website && (!/^https?:\/\//i.test(website) || website.length > 255)) return res.status(400).json({ success: false, message: "Enter a valid website beginning with https:// or http://." });
-    db.query("SELECT id, status FROM recruiter_requests WHERE student_id=?", [req.user.id], function(error, rows) {
-        if (error) return sendDatabaseError(res, error);
-        if (rows.length && rows[0].status !== "rejected") return res.status(409).json({ success: false, message: "You already have a recruiter request. Check its status before submitting another." });
-        const values = [company, website || null, contact || null, details || null, req.user.id];
-        const sql = rows.length
-            ? "UPDATE recruiter_requests SET company_name=?, company_website=?, contact_person=?, details=?, status='pending', submitted_at=CURRENT_TIMESTAMP, reviewed_at=NULL WHERE student_id=?"
-            : "INSERT INTO recruiter_requests (company_name, company_website, contact_person, details, student_id) VALUES (?, ?, ?, ?, ?)";
-        db.query(sql, values, function(err) {
-            if (err) return sendDatabaseError(res, err);
-            res.status(201).json({ success: true, message: "Request submitted. Admin approval is required before dashboard access." });
+    const jobTitle = String(req.body.job_title || "").trim();
+    const phone = String(req.body.phone || "").trim();
+    if (!fullName || fullName.length > 150 || !/^\S+@\S+\.\S+$/.test(email) || email.length > 190 ||
+        password.length < 8 || company.length < 2 || company.length > 150 || !jobTitle || jobTitle.length > 120 ||
+        !phone || phone.length > 40 || (website && (!/^https?:\/\//i.test(website) || website.length > 255))) {
+        if (req.file) fs.unlink(req.file.path, function(){});
+        return res.status(400).json({ success: false, message: "Complete all required fields. Password must be at least 8 characters and website must start with http:// or https://." });
+    }
+    if (!req.file) return res.status(400).json({ success: false, message: "A company ID, authorization letter or other proof document is required." });
+    try {
+        const passwordHash = await bcrypt.hash(password, 10);
+        const relativePath = path.relative(__dirname, req.file.path).replace(/\\/g, "/");
+        const sql = "INSERT INTO recruiter_accounts (full_name, email, password_hash, company_name, company_website, job_title, phone, verification_document_path, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')";
+        db.query(sql, [fullName, email, passwordHash, company, website || null, jobTitle, phone, relativePath], function(error, result) {
+            if (error) {
+                fs.unlink(req.file.path, function(){});
+                if (error.code === "ER_DUP_ENTRY") return res.status(409).json({ success: false, message: "An account already exists with this email address." });
+                return sendDatabaseError(res, error);
+            }
+            res.status(201).json({ success: true, message: "Registration submitted. Your account is pending admin verification. You can log in after approval." });
         });
-    });
+    } catch (error) {
+        if (req.file) fs.unlink(req.file.path, function(){});
+        console.error("Recruiter registration error:", error);
+        res.status(500).json({ success: false, message: "Could not submit recruiter registration." });
+    }
 });
 
-app.get("/api/recruiter/requests/me", verifyToken, function(req, res) {
-    db.query("SELECT company_name, company_website, status, submitted_at, reviewed_at FROM recruiter_requests WHERE student_id=? LIMIT 1", [req.user.id], function(error, rows) {
+app.post("/api/recruiter/login", function(req, res) {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
+    if (!email || !password) return res.status(400).json({ success: false, message: "Email and password are required." });
+    db.query("SELECT id, email, full_name, company_name, company_website, job_title, phone, password_hash, status FROM recruiter_accounts WHERE email=? LIMIT 1", [email], async function(error, rows) {
         if (error) return sendDatabaseError(res, error);
-        res.json({ success: true, request: rows[0] || null });
+        if (!rows.length) return res.status(401).json({ success: false, message: "Invalid email or password." });
+        const account = rows[0];
+        const correct = await bcrypt.compare(password, account.password_hash);
+        if (!correct) return res.status(401).json({ success: false, message: "Invalid email or password." });
+        if (account.status !== "approved") {
+            const message = account.status === "pending" ? "Your recruiter account is awaiting admin verification." : "Your recruiter registration was rejected. Please contact the administrator.";
+            return res.status(403).json({ success: false, status: account.status, message });
+        }
+        const token = jwt.sign({ id: account.id, accountType: "recruiter" }, JWT_SECRET, { expiresIn: "1d" });
+        delete account.password_hash;
+        res.json({ success: true, token, recruiter: account, message: "Recruiter login successful." });
     });
 });
 
 app.get("/api/admin/recruiter-requests", verifyToken, verifyAdmin, function(req, res) {
-    const sql = "SELECT r.id, r.student_id, r.company_name, r.company_website, r.contact_person, r.details, r.status, r.submitted_at, s.full_name, s.email, s.university, s.department FROM recruiter_requests r JOIN students s ON s.id=r.student_id ORDER BY CASE WHEN r.status='pending' THEN 0 ELSE 1 END, r.submitted_at DESC";
+    const sql = "SELECT id, full_name, email, company_name, company_website, job_title, phone, status, created_at, (verification_document_path IS NOT NULL) AS has_verification_document FROM recruiter_accounts ORDER BY CASE WHEN status='pending' THEN 0 ELSE 1 END, created_at DESC";
     db.query(sql, function(error, rows) {
         if (error) return sendDatabaseError(res, error);
         res.json({ success: true, requests: rows });
     });
 });
 
-app.put("/api/admin/recruiter-requests/:id", verifyToken, verifyAdmin, function(req, res) {
-    const requestId = req.params.id, status = String(req.body.status || "").toLowerCase();
-    if (!isValidId(requestId) || !["approved", "rejected"].includes(status)) return res.status(400).json({ success: false, message: "Choose approve or reject for a valid request." });
-    db.query("SELECT student_id FROM recruiter_requests WHERE id=?", [requestId], function(error, rows) {
+app.get("/api/admin/recruiter-requests/:id/document", verifyToken, verifyAdmin, function(req, res) {
+    if (!isValidId(req.params.id)) return res.status(400).json({ success: false, message: "Invalid recruiter ID." });
+    db.query("SELECT verification_document_path FROM recruiter_accounts WHERE id=? LIMIT 1", [req.params.id], function(error, rows) {
         if (error) return sendDatabaseError(res, error);
-        if (!rows.length) return res.status(404).json({ success: false, message: "Recruiter request not found." });
-        const studentId = rows[0].student_id;
-        db.query("UPDATE students SET role=? WHERE id=?", [status === "approved" ? "recruiter" : "student", studentId], function(roleError) {
-            if (roleError) return sendDatabaseError(res, roleError);
-            db.query("UPDATE recruiter_requests SET status=?, reviewed_at=CURRENT_TIMESTAMP WHERE id=?", [status, requestId], function(updateError) {
-                if (updateError) return sendDatabaseError(res, updateError);
-                res.json({ success: true, message: status === "approved" ? "Recruiter approved. They can now log in to the recruiter dashboard." : "Recruiter request rejected." });
-            });
+        if (!rows.length || !rows[0].verification_document_path) return res.status(404).json({ success: false, message: "Verification document not found." });
+        const filePath = path.resolve(__dirname, rows[0].verification_document_path);
+        if (!filePath.startsWith(recruiterProofFolder + path.sep)) return res.status(400).json({ success: false, message: "Invalid document path." });
+        res.download(filePath, function(downloadError) {
+            if (downloadError && !res.headersSent) res.status(404).json({ success: false, message: "Verification document is unavailable." });
         });
     });
 });
 
-app.get("/api/recruiter/jobs", verifyToken, verifyRecruiter, function(req, res) {
+app.put("/api/admin/recruiter-requests/:id", verifyToken, verifyAdmin, function(req, res) {
+    const id = req.params.id, status = String(req.body.status || "").toLowerCase();
+    if (!isValidId(id) || !["approved", "rejected"].includes(status)) return res.status(400).json({ success: false, message: "Choose approve or reject for a valid recruiter account." });
+    db.query("UPDATE recruiter_accounts SET status=?, reviewed_at=CURRENT_TIMESTAMP, reviewed_by=? WHERE id=?", [status, req.user.id, id], function(error, result) {
+        if (error) return sendDatabaseError(res, error);
+        if (!result.affectedRows) return res.status(404).json({ success: false, message: "Recruiter account not found." });
+        res.json({ success: true, message: status === "approved" ? "Recruiter approved. They can now log in." : "Recruiter registration rejected." });
+    });
+});
+
+app.get("/api/recruiter/jobs", verifyRecruiterToken, verifyRecruiter, function(req, res) {
     db.query("SELECT j.* FROM jobs j JOIN recruiter_job_owners o ON o.job_id=j.id WHERE o.recruiter_id=? ORDER BY j.id DESC", [req.user.id], function(error, rows) {
         if (error) return sendDatabaseError(res, error);
         res.json({ success: true, jobs: rows });
     });
 });
 
-app.post("/api/recruiter/jobs", verifyToken, verifyRecruiter, function(req, res) {
+app.post("/api/recruiter/jobs", verifyRecruiterToken, verifyRecruiter, function(req, res) {
     const { title, company, job_type, location, description, required_skills } = req.body;
     if (!title || !company || String(title).trim().length > 150 || String(company).trim().length > 150) return res.status(400).json({ success: false, message: "Valid job title and company name are required." });
     db.query("INSERT INTO jobs (title, company, job_type, location, description, required_skills) VALUES (?, ?, ?, ?, ?, ?)",
@@ -1721,7 +1793,7 @@ app.post("/api/recruiter/jobs", verifyToken, verifyRecruiter, function(req, res)
         });
 });
 
-app.get("/api/recruiter/applications", verifyToken, verifyRecruiter, function(req, res) {
+app.get("/api/recruiter/applications", verifyRecruiterToken, verifyRecruiter, function(req, res) {
     const sql = "SELECT a.id, a.student_id, a.job_id, a.status, a.cover_letter, a.applied_at, s.full_name, s.email, s.university, s.department, s.skills, s.resume_path, j.title, j.company FROM applications a JOIN students s ON s.id=a.student_id JOIN jobs j ON j.id=a.job_id JOIN recruiter_job_owners o ON o.job_id=j.id WHERE o.recruiter_id=? ORDER BY a.applied_at DESC";
     db.query(sql, [req.user.id], function(error, rows) {
         if (error) return sendDatabaseError(res, error);
@@ -1729,7 +1801,7 @@ app.get("/api/recruiter/applications", verifyToken, verifyRecruiter, function(re
     });
 });
 
-app.put("/api/recruiter/applications/:id", verifyToken, verifyRecruiter, function(req, res) {
+app.put("/api/recruiter/applications/:id", verifyRecruiterToken, verifyRecruiter, function(req, res) {
     const applicationId = req.params.id, status = String(req.body.status || "");
     if (!isValidId(applicationId) || !["Pending", "Reviewed", "Accepted", "Rejected"].includes(status)) return res.status(400).json({ success: false, message: "Invalid application or status." });
     const sql = "UPDATE applications a JOIN recruiter_job_owners o ON o.job_id=a.job_id SET a.status=? WHERE a.id=? AND o.recruiter_id=?";
@@ -1740,7 +1812,7 @@ app.put("/api/recruiter/applications/:id", verifyToken, verifyRecruiter, functio
     });
 });
 
-app.get("/api/recruiter/applications/:id/resume", verifyToken, verifyRecruiter, function(req, res) {
+app.get("/api/recruiter/applications/:id/resume", verifyRecruiterToken, verifyRecruiter, function(req, res) {
     if (!isValidId(req.params.id)) return res.status(400).json({ success: false, message: "Invalid application ID." });
     const sql = "SELECT s.resume_path FROM applications a JOIN students s ON s.id=a.student_id JOIN recruiter_job_owners o ON o.job_id=a.job_id WHERE a.id=? AND o.recruiter_id=? LIMIT 1";
     db.query(sql, [req.params.id, req.user.id], function(error, rows) {
@@ -1779,6 +1851,7 @@ app.use(function(error, req, res, next) {
 async function initializeRecruiterTables() {
     const statements = [
         "CREATE TABLE IF NOT EXISTS recruiter_requests (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, student_id BIGINT NOT NULL, company_name VARCHAR(150) NOT NULL, company_website VARCHAR(255) NULL, contact_person VARCHAR(150) NULL, details TEXT NULL, status VARCHAR(20) NOT NULL DEFAULT 'pending', submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TIMESTAMP NULL, UNIQUE KEY uq_recruiter_request_student (student_id), KEY idx_recruiter_request_status (status))",
+        "CREATE TABLE IF NOT EXISTS recruiter_accounts (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, full_name VARCHAR(150) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, company_name VARCHAR(150) NOT NULL, company_website VARCHAR(255) NULL, job_title VARCHAR(120) NOT NULL, phone VARCHAR(40) NOT NULL, verification_document_path VARCHAR(500) NOT NULL, status VARCHAR(20) NOT NULL DEFAULT 'pending', created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TIMESTAMP NULL, reviewed_by BIGINT NULL, KEY idx_recruiter_status (status))",
         "CREATE TABLE IF NOT EXISTS recruiter_job_owners (job_id BIGINT NOT NULL PRIMARY KEY, recruiter_id BIGINT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_recruiter_owner (recruiter_id))"
     ];
     for (const sql of statements) {
