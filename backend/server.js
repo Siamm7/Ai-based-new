@@ -1565,7 +1565,7 @@ app.post("/api/recommendations", verifyToken, async function(req, res) {
                 const aiResponse = await fetch(`${aiServiceUrl}/recommend`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "Accept": "application/json" },
-                    body: JSON.stringify({ cv_text: cvText, jobs })
+                    body: JSON.stringify({ cv_text: cvText, jobs: jobs.slice(0, 50) })
                 });
                const responseText = await aiResponse.text();
 
