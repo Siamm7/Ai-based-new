@@ -275,9 +275,8 @@
         ${job.match.isAI ? `<p><strong>Sentence-BERT semantic score:</strong> ${job.match.semantic.toFixed(1)}%</p><p><strong>Cosine similarity:</strong> ${job.match.cosine.toFixed(4)}</p><p><strong>Keyword match:</strong> ${job.match.keyword.toFixed(1)}%</p>` : ""}
         <p><strong>Matched skills:</strong> ${esc(job.match.matched.join(", ") || "None")}</p>
         <p><strong>Missing skills:</strong> ${esc(job.match.missing.join(", ") || "None")}</p>
-        <div class="job-actions">${job.source_url
-          ? `<a href="${esc(job.source_url)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 14px;border-radius:6px;background:#2563eb;color:#fff;text-decoration:none">Apply on company site</a>`
-          : `<button class="applyBtn" data-id="${Number(job.id)}">Apply Now</button>`}
+        <div class="job-actions">
+        <button class="applyBtn" data-id="${Number(job.id)}">Apply Now</button>
         <button class="detailsBtn" data-id="${Number(job.id)}">View Details</button></div>`;
       jobsContainer.appendChild(card);
     });
@@ -330,7 +329,12 @@
       const submit = $("applicationForm").querySelector('[type="submit"]'); submit.disabled = true;
       try {
         const data = await api("/applications", { method: "POST", body: JSON.stringify({ job_id: job.id, cover_letter: $("coverLetter").value.trim() }) });
-        statusMessage($("applicationMessage"), data.message || "Application submitted.");
+        statusMessage($("applicationMessage"), data.message || "Application recorded.");
+        if (job.source_url) {
+          statusMessage($("applicationMessage"), "Application recorded. Redirecting to the company's application page…");
+          window.location.href = job.source_url;
+          return;
+        }
         setTimeout(() => modal.remove(), 900);
       } catch (err) { statusMessage($("applicationMessage"), err.message, true); submit.disabled = false; }
     });
