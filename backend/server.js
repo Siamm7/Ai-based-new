@@ -1658,6 +1658,23 @@ app.use(function(error, req, res, next) {
 // START SERVER
 // ==========================================
 
-app.listen(PORT, function() {
-    console.log(`Server running on port ${PORT}`);
+
+async function initializeRecruiterTables() {
+    const statements = [
+        "CREATE TABLE IF NOT EXISTS recruiter_requests (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, student_id BIGINT NOT NULL, company_name VARCHAR(150) NOT NULL, company_website VARCHAR(255) NULL, contact_person VARCHAR(150) NULL, details TEXT NULL, status VARCHAR(20) NOT NULL DEFAULT 'pending', submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TIMESTAMP NULL, UNIQUE KEY uq_recruiter_request_student (student_id), KEY idx_recruiter_request_status (status))",
+        "CREATE TABLE IF NOT EXISTS recruiter_job_owners (job_id BIGINT NOT NULL PRIMARY KEY, recruiter_id BIGINT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY idx_recruiter_owner (recruiter_id))"
+    ];
+    for (const sql of statements) {
+        await new Promise((resolve, reject) => db.query(sql, error => error ? reject(error) : resolve()));
+    }
+    console.log("Recruiter tables are ready.");
+}
+
+initializeRecruiterTables().then(() => {
+    app.listen(PORT, function() {
+        console.log(`Server running on port ${PORT}`);
+    });
+}).catch(error => {
+    console.error("Could not initialize recruiter tables:", error);
+    process.exit(1);
 });
