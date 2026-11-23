@@ -27,7 +27,7 @@ function renderApps(){
 }
 async function load(){
  try{const pair=await Promise.all([api("/recruiter/jobs"),api("/recruiter/applications")]);jobs=pair[0].jobs||[];apps=pair[1].applications||[];stats();renderJobs();renderApps();}
- catch(e){$("rdApplications").textContent=e.message;if(e.message.toLowerCase().includes("approved recruiter"))location.href="recruiter-request.html";}
+ catch(e){$("rdApplications").textContent=e.message;if(e.message.toLowerCase().includes("approved recruiter"))location.href="recruiter-login.html";}
 }
 $("recruiterJobForm").addEventListener("submit",async e=>{
  e.preventDefault();const b=$("rdPublish");b.disabled=true;$("rdJobMessage").textContent="Publishing…";
@@ -39,5 +39,6 @@ $("rdApplications").addEventListener("click",async e=>{
  if(save){const id=save.dataset.save;try{await api("/recruiter/applications/"+id,{method:"PUT",body:JSON.stringify({status:$("rdStatus"+id).value})});await load();}catch(err){alert(err.message);}}
  if(resume){e.preventDefault();try{const response=await fetch(API+"/recruiter/applications/"+resume.dataset.resume+"/resume",{headers:{Authorization:"Bearer "+localStorage.getItem("recruiterToken")}});if(!response.ok){const d=await response.json().catch(()=>({}));throw new Error(d.message||"Resume download failed");}const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="applicant-resume";a.click();URL.revokeObjectURL(url);}catch(err){alert(err.message);}}
 });
-const u=user();if(!localStorage.getItem("authToken")||!u)location.href="login.html";else if(u.role!=="recruiter")location.href=u.role==="admin"?"admin.html":"recruiter-request.html";else load();
+const u=user();if(!localStorage.getItem("recruiterToken")||!u)location.href="recruiter-login.html";else load();
+const logout=$("recruiterLogout");if(logout)logout.addEventListener("click",()=>{localStorage.removeItem("recruiterToken");localStorage.removeItem("recruiterData");});
 })();
