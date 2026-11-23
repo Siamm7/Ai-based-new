@@ -94,7 +94,7 @@ def normalize_skill_text(value):
         pattern = r"(?<![a-z0-9])" + re.escape(alias) + r"(?![a-z0-9])"
         text = re.sub(pattern, canonical, text)
 
-    return re.sub(r"\\s+", " ", text).strip()
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def contains_skill(cv_text, required_skill):
