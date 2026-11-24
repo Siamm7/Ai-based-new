@@ -15,6 +15,8 @@ MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 app = FastAPI(title="Job Recommendation AI Service", version="2.0.0")
 
 model = None
+model_status = "not_started"
+model_error = None
 
 
 class Job(BaseModel):
@@ -31,20 +33,49 @@ class RecommendationRequest(BaseModel):
 
 
 def load_model():
-    global model
-    try:
-        model = TextEmbedding(
-            model_name=MODEL_NAME,
-            threads=1
-        )
-        print("AI embedding model loaded successfully.", flush=True)
-    except Exception as exc:
-        print(f"AI model loading failed: {exc}", flush=True)
+    global model, model_status, model_error
+
+    attempt = 0
+    while model is None:
+        attempt += 1
+        model_status = "loading"
+        try:
+            print(
+                f"Starting AI model load (attempt {attempt}).",
+                flush=True
+            )
+            loaded_model = TextEmbedding(
+                model_name=MODEL_NAME,
+                threads=1
+            )
+
+            # Publish the model only after initialization succeeds.
+            model = loaded_model
+            model_error = None
+            model_status = "ready"
+            print("AI embedding model loaded successfully.", flush=True)
+            return
+        except Exception as exc:
+            model_error = str(exc)[:500]
+            model_status = "failed"
+            print(
+                f"AI model loading failed on attempt {attempt}: {exc}",
+                flush=True
+            )
+
+            # Retry transient download/network failures without restarting
+            # the web service. Keep the delay bounded.
+            retry_delay = min(15 * attempt, 60)
+            print(
+                f"Retrying AI model load in {retry_delay} seconds.",
+                flush=True
+            )
+            threading.Event().wait(retry_delay)
 
 
 @app.on_event("startup")
 def start_model_loading():
-    # Do not block Uvicorn from opening its port while the model downloads.
+    # Keep the web server responsive while the model downloads.
     threading.Thread(target=load_model, daemon=True).start()
 
 
@@ -125,10 +156,12 @@ def contains_skill(cv_text, required_skill):
 @app.get("/health")
 def health():
     return {
-        "success": True,
+        "success": model is not None,
         "service": "fastembed-cosine",
         "model": MODEL_NAME,
-        "model_loaded": model is not None
+        "model_loaded": model is not None,
+        "model_status": model_status,
+        "model_error": model_error
     }
 
 
