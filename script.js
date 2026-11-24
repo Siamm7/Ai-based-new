@@ -234,20 +234,36 @@
       return;
     }
     setAiStatus("Analyzing your CV against available jobs...");
-    try {
-      const result = await api("/recommendations", {
-        method: "POST",
-        body: JSON.stringify({ cv_text: cvText.slice(0, 30000) })
-      });
-      aiRecommendations = new Map((result.recommendations || []).map(item => [Number(item.job_id), item]));
-      aiRecommendationError = "";
-      setAiStatus(aiRecommendations.size
-        ? `AI skill matching completed for ${aiRecommendations.size} jobs.`
-        : "The AI service returned no job recommendations.");
-    } catch (error) {
-      aiRecommendationError = error.message;
-      setAiStatus(`AI matching failed: ${error.message}. Showing profile-skill matches instead.`, true);
-      console.warn("AI recommendations unavailable:", error.message);
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        if (attempt > 1) {
+          setAiStatus(`AI service is still waking up. Retrying automatically (${attempt}/${maxAttempts})...`);
+          await new Promise(resolve => setTimeout(resolve, 15000));
+        }
+
+        const result = await api("/recommendations", {
+          method: "POST",
+          body: JSON.stringify({ cv_text: cvText.slice(0, 30000) })
+        });
+        aiRecommendations = new Map((result.recommendations || []).map(item => [Number(item.job_id), item]));
+        aiRecommendationError = "";
+        setAiStatus(aiRecommendations.size
+          ? `AI skill matching completed for ${aiRecommendations.size} jobs.`
+          : "The AI service returned no job recommendations.");
+        break;
+      } catch (error) {
+        const isModelStarting = error.message.includes("The AI service is starting and its model is not ready yet");
+        if (isModelStarting && attempt < maxAttempts) {
+          console.warn(`AI service is not ready yet; retrying (${attempt}/${maxAttempts}).`);
+          continue;
+        }
+
+        aiRecommendationError = error.message;
+        setAiStatus(`AI matching failed: ${error.message}. Showing profile-skill matches instead.`, true);
+        console.warn("AI recommendations unavailable:", error.message);
+        break;
+      }
     }
     renderJobs();
   }
