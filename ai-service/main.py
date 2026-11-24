@@ -7,12 +7,28 @@ import threading
 import numpy as np
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from fastembed import TextEmbedding
 
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
 app = FastAPI(title="Job Recommendation AI Service", version="2.0.0")
+
+# Allow the deployed admin dashboard to wake and monitor this service directly.
+# The health endpoint is public already; CORS limits browser access to trusted origins.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://ai-based-new.vercel.app",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
 model = None
 model_status = "not_started"
