@@ -135,5 +135,71 @@
     } catch (err) { $("importMessage").textContent = err.message; }
     finally { importButton.disabled = false; }
   });
+  // Wake the Python AI service directly from the admin's browser.
+  // This avoids relying on a backend-to-Render request during a free-instance cold start.
+  const aiStartButton = $("startAiServiceButton");
+  if (aiStartButton) {
+    const aiStatus = $("aiServiceStatus");
+    const aiDetails = $("aiServiceDetails");
+    const aiHealthUrl = "https://ai-job-recommendation-model.onrender.com/health";
+    const setAiStatus = (status, details, bad=false) => {
+      aiStatus.textContent = status;
+      aiStatus.style.color = bad ? "#b91c1c" : (status === "Ready" ? "#15803d" : "#b45309");
+      aiDetails.textContent = details;
+    };
+
+    aiStartButton.addEventListener("click", async () => {
+      aiStartButton.disabled = true;
+      aiStartButton.textContent = "Starting AI Service…";
+      const deadline = Date.now() + 5 * 60 * 1000;
+      let lastIssue = "Waiting for the service to respond.";
+
+      try {
+        while (Date.now() < deadline) {
+          setAiStatus("Waking up", "Contacting the Python AI service and waiting for its embedding model…");
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 12000);
+            let response;
+            try {
+              response = await fetch(aiHealthUrl, {
+                method: "GET",
+                cache: "no-store",
+                mode: "cors",
+                signal: controller.signal
+              });
+            } finally {
+              clearTimeout(timeout);
+            }
+
+            if (response.ok) {
+              const health = await response.json();
+              if (health.model_loaded === true && health.model_status === "ready") {
+                setAiStatus("Ready", "AI model is loaded. Students can now use AI job recommendations.");
+                aiStartButton.textContent = "Check AI Service Again";
+                return;
+              }
+              lastIssue = health.model_error || ("Model status: " + (health.model_status || "loading"));
+            } else {
+              lastIssue = "Health check returned HTTP " + response.status + ". Render may still be waking the service.";
+            }
+          } catch (error) {
+            lastIssue = error.name === "AbortError"
+              ? "Health check timed out. The service may still be starting."
+              : error.message;
+          }
+
+          setAiStatus("Starting", lastIssue + " Retrying automatically…");
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+
+        setAiStatus("Not ready", "The service did not become ready within 5 minutes. Last result: " + lastIssue, true);
+        aiStartButton.textContent = "Try Starting Again";
+      } finally {
+        aiStartButton.disabled = false;
+      }
+    });
+  }
+
   init();
 })();
