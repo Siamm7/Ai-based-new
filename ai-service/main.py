@@ -19,13 +19,9 @@ app = FastAPI(title="Job Recommendation AI Service", version="2.0.0")
 # The health endpoint is public already; CORS limits browser access to trusted origins.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://ai-based-new.vercel.app",
-        "http://localhost:5500",
-        "http://127.0.0.1:5500",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    # The health endpoint exposes only public readiness information and has no
+    # authenticated actions, so allow the admin page on any Vercel deployment URL.
+    allow_origins=["*"],
     allow_methods=["GET"],
     allow_headers=["*"],
 )
