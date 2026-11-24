@@ -1591,32 +1591,51 @@ app.post("/api/recommendations", verifyToken, async function(req, res) {
             }
 
             try {
-                // Wake the AI service and wait until its embedding model is ready.
-                // Render free instances may sleep, and the model loads after Uvicorn starts.
+                // Wake the AI service and wait for its embedding model to finish loading.
+                // Render Free instances can sleep for 15 minutes; the service and model
+                // may need additional time after the first request wakes the instance.
                 let modelReady = false;
-                for (let attempt = 1; attempt <= 40; attempt++) {
+                let lastModelStatus = "unknown";
+                let lastModelError = null;
+                const readinessDeadline = Date.now() + (5 * 60 * 1000);
+
+                while (!modelReady && Date.now() < readinessDeadline) {
                     try {
-                        const healthResponse = await fetch(`${aiServiceUrl}/health`);
+                        const healthResponse = await fetch(aiServiceUrl + "/health", {
+                            signal: AbortSignal.timeout(10000)
+                        });
+
                         if (healthResponse.ok) {
                             const health = await healthResponse.json();
+                            lastModelStatus = health.model_status || (health.model_loaded ? "ready" : "loading");
+                            lastModelError = health.model_error || null;
+
                             if (health.model_loaded === true) {
                                 modelReady = true;
                                 break;
                             }
+                        } else {
+                            lastModelStatus = "health_http_" + healthResponse.status;
                         }
                     } catch (healthError) {
-                        console.warn(`AI service is waking up (attempt ${attempt}/40):`, healthError.message);
+                        lastModelStatus = "waking_or_unreachable";
+                        lastModelError = healthError.message;
+                        console.warn("AI service health check will retry:", healthError.message);
                     }
 
-                    if (attempt < 40) {
+                    if (!modelReady && Date.now() < readinessDeadline) {
                         await new Promise(resolve => setTimeout(resolve, 3000));
                     }
                 }
 
                 if (!modelReady) {
+                    console.error("AI model did not become ready within 5 minutes.", {
+                        model_status: lastModelStatus,
+                        model_error: lastModelError
+                    });
                     return res.status(503).json({
                         success: false,
-                        message: "The AI service is starting and its model is not ready yet. Please try again in a minute."
+                        message: "The AI service is still loading its model. Please try again shortly."
                     });
                 }
 
