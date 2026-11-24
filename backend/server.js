@@ -1635,7 +1635,7 @@ app.post("/api/recommendations", verifyToken, async function(req, res) {
                     });
                     return res.status(503).json({
                         success: false,
-                        message: "The AI service is still loading its model. Please try again shortly."
+                        message: "The AI service is starting and its model is not ready yet. Please try again in a minute."
                     });
                 }
 
