@@ -432,8 +432,10 @@ app.get("/api/students/:id", verifyToken, function(req, res) {
     }
 
     const sql = `
-        SELECT id, full_name, email, university,
-               department, skills, resume_path, role, created_at
+        SELECT id, full_name, email, university, department, skills, resume_path,
+               phone, location, graduation_year, career_objective, experience_level,
+               tools, projects, certifications, preferred_roles,
+               linkedin_url, github_url, portfolio_url, resume_text, role, created_at
         FROM students
         WHERE id = ?
     `;
@@ -478,10 +480,10 @@ app.put("/api/students/:id", verifyToken, function(req, res) {
     }
 
     const {
-        full_name,
-        university,
-        department,
-        skills
+        full_name, university, department, skills, phone, location,
+        graduation_year, career_objective, experience_level, tools,
+        projects, certifications, preferred_roles, linkedin_url,
+        github_url, portfolio_url
     } = req.body;
 
     if (!full_name || String(full_name).trim().length < 2) {
@@ -493,20 +495,25 @@ app.put("/api/students/:id", verifyToken, function(req, res) {
 
     const sql = `
         UPDATE students
-        SET full_name = ?,
-            university = ?,
-            department = ?,
-            skills = ?
+        SET full_name = ?, university = ?, department = ?, skills = ?,
+            phone = ?, location = ?, graduation_year = ?, career_objective = ?,
+            experience_level = ?, tools = ?, projects = ?, certifications = ?,
+            preferred_roles = ?, linkedin_url = ?, github_url = ?, portfolio_url = ?
         WHERE id = ?
     `;
+
+    const cleanYear = graduation_year === "" || graduation_year == null ? null : Number(graduation_year);
+    if (cleanYear !== null && (!Number.isInteger(cleanYear) || cleanYear < 1950 || cleanYear > 2150)) {
+        return res.status(400).json({ success: false, message: "Enter a valid graduation year." });
+    }
 
     db.query(
         sql,
         [
-            String(full_name).trim(),
-            university || null,
-            department || null,
-            skills || null,
+            String(full_name).trim(), university || null, department || null, skills || null,
+            phone || null, location || null, cleanYear, career_objective || null,
+            experience_level || null, tools || null, projects || null, certifications || null,
+            preferred_roles || null, linkedin_url || null, github_url || null, portfolio_url || null,
             studentId
         ],
         function(error, result) {
@@ -589,13 +596,14 @@ app.post("/api/students/:id/resume", verifyToken, function(req, res) {
 
             const oldResumePath = results[0].resume_path;
 
+            const extractedText = String(req.body.resume_text || "").trim().slice(0, 30000);
             const updateSql = `
                 UPDATE students
-                SET resume_path = ?
+                SET resume_path = ?, resume_text = ?
                 WHERE id = ?
             `;
 
-            db.query(updateSql, [newResumePath, studentId], function(error) {
+            db.query(updateSql, [newResumePath, extractedText || null, studentId], function(error) {
                 if (error) {
                     deleteResumeFile(newResumePath);
                     return sendDatabaseError(res, error);
@@ -761,7 +769,7 @@ app.delete("/api/students/:id/resume", verifyToken, function(req, res) {
         const oldResumePath = results[0].resume_path;
 
         db.query(
-            "UPDATE students SET resume_path = NULL WHERE id = ?",
+            "UPDATE students SET resume_path = NULL, resume_text = NULL WHERE id = ?",
             [studentId],
             function(error) {
                 if (error) return sendDatabaseError(res, error);
