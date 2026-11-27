@@ -463,17 +463,115 @@
 
   // Job details and application modal
   function openDetails(job) {
-    const old = $("jobDetailsModal"); if (old) old.remove();
-    const modal = document.createElement("div"); modal.id = "jobDetailsModal";
-    modal.style.cssText = "position:fixed;inset:0;background:#0009;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px";
-    modal.innerHTML = `<div style="background:white;color:#222;max-width:600px;width:100%;padding:28px;border-radius:14px;max-height:85vh;overflow:auto">
-      <button id="closeDetails" style="float:right">Close</button><h2>${esc(job.title)}</h2>
-      <p><b>Company:</b> ${esc(job.company)}</p><p><b>Type:</b> ${esc(job.type)}</p><p><b>Location:</b> ${esc(job.location)}</p>
-      <h3>Description</h3><p>${esc(job.description)}</p><h3>Required skills</h3><p>${esc(job.skills.join(", "))}</p>
-      ${job.source_url ? `<p><a href="${esc(job.source_url)}" target="_blank" rel="noopener noreferrer">View original job posting / apply</a></p>` : ""}</div>`;
+    const old = $("jobDetailsModal");
+    if (old) old.remove();
+
+    // Build the dialog with DOM APIs so job descriptions containing markup,
+    // quotes or unusual characters cannot break the page's HTML.
+    const modal = document.createElement("div");
+    modal.id = "jobDetailsModal";
+    modal.setAttribute("role", "presentation");
+
+    const dialog = document.createElement("section");
+    dialog.className = "job-details-dialog";
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-labelledby", "jobDetailsTitle");
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "job-details-close";
+    closeButton.setAttribute("aria-label", "Close job details");
+    closeButton.textContent = "×";
+
+    const eyebrow = document.createElement("span");
+    eyebrow.className = "job-details-eyebrow";
+    eyebrow.textContent = "JOB OPPORTUNITY";
+
+    const title = document.createElement("h2");
+    title.id = "jobDetailsTitle";
+    title.textContent = job.title || "Job details";
+
+    const meta = document.createElement("div");
+    meta.className = "job-details-meta";
+    [job.company, job.type, job.location].filter(Boolean).forEach(value => {
+      const item = document.createElement("span");
+      item.textContent = value;
+      meta.appendChild(item);
+    });
+
+    function addSection(heading, value) {
+      const section = document.createElement("section");
+      section.className = "job-details-section";
+      const h = document.createElement("h3");
+      h.textContent = heading;
+      const p = document.createElement("p");
+      p.textContent = value || "Not provided";
+      section.append(h, p);
+      dialog.appendChild(section);
+    }
+
+    const descriptionSection = document.createElement("section");
+    descriptionSection.className = "job-details-section";
+    const descriptionHeading = document.createElement("h3");
+    descriptionHeading.textContent = "Job Description";
+    const description = document.createElement("p");
+    description.textContent = job.description || "No job description was provided.";
+    descriptionSection.append(descriptionHeading, description);
+
+    const skillsSection = document.createElement("section");
+    skillsSection.className = "job-details-section";
+    const skillsHeading = document.createElement("h3");
+    skillsHeading.textContent = "Required Skills";
+    const skills = document.createElement("div");
+    skills.className = "job-details-skills";
+    (Array.isArray(job.skills) ? job.skills : skillsOf(job.skills)).forEach(skill => {
+      const chip = document.createElement("span");
+      chip.textContent = skill;
+      skills.appendChild(chip);
+    });
+    if (!skills.children.length) {
+      const empty = document.createElement("p");
+      empty.textContent = "No specific skills listed.";
+      skills.appendChild(empty);
+    }
+    skillsSection.append(skillsHeading, skills);
+
+    const actions = document.createElement("div");
+    actions.className = "job-details-actions";
+    if (job.source_url) {
+      try {
+        const sourceUrl = new URL(job.source_url, window.location.href);
+        if (sourceUrl.protocol === "http:" || sourceUrl.protocol === "https:") {
+          const link = document.createElement("a");
+          link.href = sourceUrl.href;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = "View original posting / Apply →";
+          actions.appendChild(link);
+        }
+      } catch (error) {
+        console.warn("Ignoring invalid job source URL:", error.message);
+      }
+    }
+
+    dialog.append(closeButton, eyebrow, title, meta, descriptionSection, skillsSection, actions);
+    modal.appendChild(dialog);
     document.body.appendChild(modal);
-    $("closeDetails").onclick = () => modal.remove();
-    modal.addEventListener("click", e => { if (e.target === modal) modal.remove(); });
+
+    const close = () => {
+      modal.remove();
+      document.removeEventListener("keydown", onKeyDown);
+    };
+    const onKeyDown = event => {
+      if (event.key === "Escape") close();
+    };
+    closeButton.addEventListener("click", close);
+    modal.addEventListener("click", event => {
+      if (event.target === modal) close();
+    });
+    document.addEventListener("keydown", onKeyDown);
+    closeButton.focus();
   }
   function openApply(job) {
     if (!requireLogin()) return;
