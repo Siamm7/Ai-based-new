@@ -461,6 +461,63 @@
   if ($("jobType")) $("jobType").addEventListener("change", renderJobs);
   loadJobs();
 
+  // Render job descriptions with safe, limited HTML formatting.
+  // Job descriptions may come from external job boards, so never inject raw HTML.
+  function renderJobDescription(container, rawDescription) {
+    const raw = String(rawDescription ?? "").trim();
+    if (!raw) {
+      container.textContent = "No job description was provided.";
+      return;
+    }
+
+    const allowedTags = new Set(["P", "BR", "STRONG", "B", "EM", "I", "U", "UL", "OL", "LI", "H2", "H3", "H4", "BLOCKQUOTE", "A"]);
+    const blockedTags = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "SVG", "MATH", "FORM", "INPUT", "BUTTON"]);
+    const parsed = new DOMParser().parseFromString(raw, "text/html");
+    // Some imported listings contain HTML entities around the whole markup.
+    if (!parsed.body.children.length && /&lt;\/?[a-z][^&]*&gt;/i.test(raw)) {
+      const decoded = new DOMParser().parseFromString(parsed.body.textContent, "text/html");
+      if (decoded.body.children.length) parsed.body.replaceChildren(...decoded.body.childNodes);
+    }
+
+    const hasMarkup = parsed.body.querySelector("p,br,strong,b,em,i,u,ul,ol,li,h2,h3,h4,blockquote,a") || /<\/?[a-z][^>]*>/i.test(raw);
+    if (!hasMarkup) {
+      container.textContent = parsed.body.textContent || raw;
+      container.classList.add("job-description-plain");
+      return;
+    }
+
+    function copySafeNode(node, parent) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        parent.appendChild(document.createTextNode(node.nodeValue || ""));
+        return;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      if (blockedTags.has(node.tagName)) return;
+      if (!allowedTags.has(node.tagName)) {
+        Array.from(node.childNodes).forEach(child => copySafeNode(child, parent));
+        return;
+      }
+      const clean = document.createElement(node.tagName.toLowerCase());
+      if (node.tagName === "A") {
+        const href = node.getAttribute("href") || "";
+        try {
+          const url = new URL(href, window.location.href);
+          if (["http:", "https:", "mailto:"].includes(url.protocol)) {
+            clean.setAttribute("href", url.href);
+            if (url.protocol !== "mailto:") {
+              clean.setAttribute("target", "_blank");
+              clean.setAttribute("rel", "noopener noreferrer");
+            }
+          }
+        } catch (_) {}
+      }
+      Array.from(node.childNodes).forEach(child => copySafeNode(child, clean));
+      parent.appendChild(clean);
+    }
+
+    Array.from(parsed.body.childNodes).forEach(node => copySafeNode(node, container));
+  }
+
   // Job details and application modal
   function openDetails(job) {
     const old = $("jobDetailsModal");
@@ -516,7 +573,7 @@
     const descriptionHeading = document.createElement("h3");
     descriptionHeading.textContent = "Job Description";
     const description = document.createElement("p");
-    description.textContent = job.description || "No job description was provided.";
+    renderJobDescription(description, job.description);
     descriptionSection.append(descriptionHeading, description);
 
     const skillsSection = document.createElement("section");
