@@ -175,3 +175,146 @@ header:not(.site-header) nav a:hover{color:var(--primary)}
 .register-container input,.register-container select{width:100%;height:46px;padding:0 13px;border:1px solid #dfe5ef;border-radius:9px;background:#fbfcff;margin-bottom:5px;outline:none}
 .register-container input:focus,.register-container select:focus{border-color:#8da8ff;box-shadow:0 0 0 3px #3157d514}
 .register-container button{width:100%;margin-top:14px}
+
+
+/* Profile page refinement */
+.profile-layout{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:24px;
+  align-items:stretch;
+}
+.profile-container{grid-column:1/-1}
+.update-section,.resume-section{
+  min-width:0;
+  padding:28px;
+  border-radius:20px;
+}
+.update-section form{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px 16px;
+}
+.update-section form>div{min-width:0}
+.update-section label,.resume-section label{
+  display:block;
+  margin:8px 0 6px;
+  color:#42516b;
+  font-size:12px;
+  font-weight:700;
+}
+.update-section input,
+.update-section select,
+.update-section textarea,
+.resume-section input[type="file"],
+.resume-section textarea{
+  display:block;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  border:1px solid #dce4f1;
+  border-radius:11px;
+  background:#fbfcff;
+  color:var(--ink);
+  font:400 14px 'DM Sans',Arial,sans-serif;
+  outline:none;
+  transition:border-color .2s,box-shadow .2s,background .2s;
+}
+.update-section input,
+.update-section select{
+  min-height:46px;
+  padding:10px 13px;
+  margin:0 0 5px;
+}
+.update-section textarea{
+  min-height:94px;
+  padding:11px 13px;
+  margin:0 0 5px;
+  line-height:1.55;
+  resize:vertical;
+}
+.update-section input:focus,
+.update-section select:focus,
+.update-section textarea:focus,
+.resume-section input[type="file"]:focus,
+.resume-section textarea:focus{
+  border-color:#86a2fa;
+  background:#fff;
+  box-shadow:0 0 0 4px rgba(49,87,213,.10);
+}
+.update-section input::placeholder,
+.update-section textarea::placeholder,
+.resume-section textarea::placeholder{
+  color:#9aa6ba;
+}
+.update-section form button{
+  grid-column:1/-1;
+  width:100%;
+  min-height:48px;
+  margin-top:10px;
+}
+.resume-section{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+}
+.resume-section>p{
+  line-height:1.65;
+  margin-bottom:8px;
+}
+.resume-section input[type="file"]{
+  min-height:54px;
+  padding:12px;
+  margin:12px 0 8px;
+  border:1px dashed #aebfe8;
+  background:#f7f9ff;
+  color:#52617b;
+  font-size:13px;
+}
+.resume-section input[type="file"]::file-selector-button{
+  border:0;
+  border-radius:8px;
+  background:#e9efff;
+  color:var(--primary);
+  padding:8px 12px;
+  margin-right:12px;
+  font:700 12px 'DM Sans',Arial,sans-serif;
+  cursor:pointer;
+}
+#fileName{
+  min-height:20px;
+  overflow-wrap:anywhere;
+  margin:0 0 16px;
+  color:#71809a;
+}
+#resumeTextEditor{
+  width:100%;
+  min-height:320px;
+  padding:15px;
+  margin:0 0 16px;
+  border:1px solid #dce4f1;
+  border-radius:12px;
+  background:#fbfcff;
+  color:var(--ink);
+  font:400 13px/1.7 'DM Sans',Arial,sans-serif;
+  resize:vertical;
+  outline:none;
+}
+.resume-section .btn{
+  width:100%;
+  min-height:49px;
+  white-space:normal;
+}
+#updateMessage,#uploadMessage{
+  min-height:18px;
+  overflow-wrap:anywhere;
+}
+@media(max-width:850px){
+  .profile-layout{grid-template-columns:1fr}
+  .profile-container{grid-column:1}
+  .resume-section{min-height:0}
+}
+@media(max-width:620px){
+  .update-section,.resume-section{padding:21px}
+  .update-section form{grid-template-columns:1fr;gap:7px}
+  .update-section form button{grid-column:1}
+  #resumeTextEditor{min-height:260px}
+}
