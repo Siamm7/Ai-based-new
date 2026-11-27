@@ -118,6 +118,24 @@
       $("profileUniversity").textContent = s.university || "Not provided";
       $("profileDepartment").textContent = s.department || "Not provided";
       $("profileSkills").textContent = skillsOf(s.skills).join(", ") || "Not provided";
+      const overviewFields = {
+        profilePhone: "phone",
+        profileLocation: "location",
+        profileGraduationYear: "graduation_year",
+        profileExperienceLevel: "experience_level",
+        profilePreferredRoles: "preferred_roles",
+        profileTools: "tools",
+        profileProjects: "projects",
+        profileCertifications: "certifications",
+        profileCareerObjective: "career_objective",
+        profileLinkedin: "linkedin_url",
+        profileGithub: "github_url",
+        profilePortfolio: "portfolio_url"
+      };
+      Object.entries(overviewFields).forEach(([elementId, field]) => {
+        const element = $(elementId);
+        if (element) element.textContent = s[field] || "Not provided";
+      });
       if ($("updateName")) $("updateName").value = s.full_name || "";
       if ($("updateUniversity")) $("updateUniversity").value = s.university || "";
       if ($("updateDepartment")) $("updateDepartment").value = s.department || "";
