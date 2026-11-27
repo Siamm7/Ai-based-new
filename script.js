@@ -187,6 +187,43 @@
     }
     return extracted.trim().slice(0, 30000);
   }
+  // Best-effort CV parsing: detected values remain editable before saving.
+  function parseResumeIntoProfile(text) {
+    const source = String(text || "");
+    const patterns = {
+      updateName: [/^(?:full\\s+name|name)\\s*[:|-]\\s*(.+)$/im],
+      updatePhone: [/(?:phone|mobile|contact)\\s*[:|-]?\\s*(\\+?[\\d][\\d ()-]{7,18})/i],
+      updateLocation: [/(?:location|address)\\s*[:|-]\\s*(.+)$/im],
+      updateLinkedin: [/(https?:\\/\\/(?:www\\.)?linkedin\\.com\\/[^\\s]+)/i],
+      updateGithub: [/(https?:\\/\\/(?:www\\.)?github\\.com\\/[^\\s]+)/i],
+      updateUniversity: [/^.*\\b(?:university|college|institute)\\b.*$/im],
+      updateDepartment: [/(?:department|major|field of study)\\s*[:|-]\\s*(.+)$/im],
+      updateGraduationYear: [/(?:graduation year|expected graduation|class of)\\s*[:|-]?\\s*((?:19|20|21)\\d{2})/i],
+      updateSkills: [/(?:technical skills|skills)\\s*[:|-]\\s*([^\\n]+)/i],
+      updateProjects: [/(?:projects|personal projects)\\s*[:|-]\\s*([\\s\\S]*?)(?=\\n[A-Z][A-Z &]{2,}\\n|$)/i],
+      updateCertifications: [/(?:certifications?|certificates)\\s*[:|-]\\s*([\\s\\S]*?)(?=\\n[A-Z][A-Z &]{2,}\\n|$)/i],
+      updateCareerObjective: [/(?:career objective|professional summary|summary)\\s*[:|-]\\s*([\\s\\S]*?)(?=\\n[A-Z][A-Z &]{2,}\\n|$)/i]
+    };
+    let count = 0;
+    for (const [id, list] of Object.entries(patterns)) {
+      const field = $(id);
+      if (!field) continue;
+      for (const pattern of list) {
+        const match = source.match(pattern);
+        if (match && match[1]) {
+          field.value = match[1].trim().slice(0, 5000);
+          count++;
+          break;
+        } else if (match && match[0] && id === "updateUniversity") {
+          field.value = match[0].trim().slice(0, 500);
+          count++;
+          break;
+        }
+      }
+    }
+    return count;
+  }
+
   if (resumeInput) resumeInput.addEventListener("change", async () => {
     const file = resumeInput.files[0];
     if ($("fileName")) $("fileName").textContent = file?.name || "No file selected";
@@ -195,8 +232,9 @@
     try {
       const extracted = await extractResumeText(file);
       if ($("resumeTextEditor")) $("resumeTextEditor").value = extracted;
+      const detected = extracted.length >= 20 ? parseResumeIntoProfile(extracted) : 0;
       statusMessage($("uploadMessage"), extracted.length >= 20
-        ? "Text extracted. Review or edit it, then save your new resume."
+        ? `Text extracted. ${detected} profile fields detected. Review and correct them before saving.`
         : "Could not extract enough text. This may be a scanned PDF; please use a text-based PDF or DOCX.", extracted.length < 20);
     } catch (error) {
       statusMessage($("uploadMessage"), "Could not read this resume: " + error.message, true);
@@ -217,9 +255,28 @@
     uploadBtn.disabled = true;
     try {
       await api(`/students/${user.id}/resume`, { method: "POST", body: form });
+      await api(`/students/${user.id}`, { method: "PUT", body: JSON.stringify({
+        full_name: $("updateName").value.trim(),
+        university: $("updateUniversity").value.trim(),
+        department: $("updateDepartment").value.trim(),
+        skills: $("updateSkills").value.trim(),
+        phone: $("updatePhone").value.trim(),
+        location: $("updateLocation").value.trim(),
+        graduation_year: $("updateGraduationYear").value || null,
+        career_objective: $("updateCareerObjective").value.trim(),
+        experience_level: $("updateExperienceLevel").value,
+        tools: $("updateTools").value.trim(),
+        projects: $("updateProjects").value.trim(),
+        certifications: $("updateCertifications").value.trim(),
+        preferred_roles: $("updatePreferredRoles").value.trim(),
+        linkedin_url: $("updateLinkedin").value.trim(),
+        github_url: $("updateGithub").value.trim(),
+        portfolio_url: $("updatePortfolio").value.trim()
+      })});
       const key = resumeStorageKey(user);
       if (key) localStorage.setItem(key, editedText);
-      statusMessage($("uploadMessage"), "New resume and edited extracted text saved to the database. Previous resume replaced.");
+      await loadProfile();
+      statusMessage($("uploadMessage"), "Resume text and profile fields saved to the database. They will remain after refresh.");
     } catch (err) {
       statusMessage($("uploadMessage"), err.message, true);
     } finally {
