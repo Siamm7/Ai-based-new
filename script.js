@@ -285,11 +285,11 @@
         profile.career_objective, profile.experience_level, profile.tools,
         profile.projects, profile.certifications, profile.preferred_roles,
         profile.location
-      ].filter(Boolean).join("\\n");
+      ].filter(Boolean).join("\n");
     } catch (error) {
       console.warn("Could not load saved student profile for AI matching:", error.message);
     }
-    const cvText = [resumeText.trim(), profileText].filter(Boolean).join("\\n").slice(0, 30000);
+    const cvText = [resumeText.trim(), profileText].filter(Boolean).join("\n").slice(0, 30000);
     if (cvText.length < 20) {
       setAiStatus("Upload your CV and complete your profile in My Profile to enable AI skill matching.");
       return;
