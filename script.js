@@ -265,15 +265,33 @@
     status.style.color = isError ? "#b91c1c" : "#475569";
   }
   async function loadAiRecommendations() {
-    const key = resumeStorageKey();
-    const resumeText = (key ? localStorage.getItem(key) : "") || "";
-    const cvText = resumeText.trim();
     if (!token() || !currentUser()) {
       setAiStatus("Log in to get CV-based AI recommendations.");
       return;
     }
+    const user = currentUser();
+    const key = resumeStorageKey(user);
+    let resumeText = (key ? localStorage.getItem(key) : "") || "";
+    let profileText = "";
+    try {
+      const profileResponse = await api(`/students/${user.id}`);
+      const profile = profileResponse.student || {};
+      if (profile.resume_text) {
+        resumeText = profile.resume_text;
+        if (key) localStorage.setItem(key, resumeText);
+      }
+      profileText = [
+        profile.full_name, profile.university, profile.department, profile.skills,
+        profile.career_objective, profile.experience_level, profile.tools,
+        profile.projects, profile.certifications, profile.preferred_roles,
+        profile.location
+      ].filter(Boolean).join("\\n");
+    } catch (error) {
+      console.warn("Could not load saved student profile for AI matching:", error.message);
+    }
+    const cvText = [resumeText.trim(), profileText].filter(Boolean).join("\\n").slice(0, 30000);
     if (cvText.length < 20) {
-      setAiStatus("Upload your CV in My Profile to enable AI skill matching.");
+      setAiStatus("Upload your CV and complete your profile in My Profile to enable AI skill matching.");
       return;
     }
     if (!jobs.length) {
