@@ -122,6 +122,21 @@
       if ($("updateUniversity")) $("updateUniversity").value = s.university || "";
       if ($("updateDepartment")) $("updateDepartment").value = s.department || "";
       if ($("updateSkills")) $("updateSkills").value = skillsOf(s.skills).join(", ");
+      const profileFields = {
+        updatePhone: "phone", updateLocation: "location", updateGraduationYear: "graduation_year",
+        updateCareerObjective: "career_objective", updateExperienceLevel: "experience_level",
+        updateTools: "tools", updateProjects: "projects", updateCertifications: "certifications",
+        updatePreferredRoles: "preferred_roles", updateLinkedin: "linkedin_url",
+        updateGithub: "github_url", updatePortfolio: "portfolio_url"
+      };
+      Object.entries(profileFields).forEach(([elementId, field]) => {
+        if ($(elementId)) $(elementId).value = s[field] ?? "";
+      });
+      const resumeKey = resumeStorageKey(user);
+      if (s.resume_text && resumeKey) localStorage.setItem(resumeKey, s.resume_text);
+      if ($("resumeTextEditor") && s.resume_text && !$("resumeTextEditor").value) {
+        $("resumeTextEditor").value = s.resume_text;
+      }
     } catch (err) { statusMessage($("updateMessage"), err.message, true); }
   }
   loadProfile();
@@ -136,48 +151,80 @@
         full_name: $("updateName").value.trim(),
         university: $("updateUniversity").value.trim(),
         department: $("updateDepartment").value.trim(),
-        skills: $("updateSkills").value.split(",").map(s => s.trim()).filter(Boolean).join(", ")
+        skills: $("updateSkills").value.split(",").map(s => s.trim()).filter(Boolean).join(", "),
+        phone: $("updatePhone")?.value.trim() || "",
+        location: $("updateLocation")?.value.trim() || "",
+        graduation_year: $("updateGraduationYear")?.value || null,
+        career_objective: $("updateCareerObjective")?.value.trim() || "",
+        experience_level: $("updateExperienceLevel")?.value || "",
+        tools: $("updateTools")?.value.trim() || "",
+        projects: $("updateProjects")?.value.trim() || "",
+        certifications: $("updateCertifications")?.value.trim() || "",
+        preferred_roles: $("updatePreferredRoles")?.value.trim() || "",
+        linkedin_url: $("updateLinkedin")?.value.trim() || "",
+        github_url: $("updateGithub")?.value.trim() || "",
+        portfolio_url: $("updatePortfolio")?.value.trim() || ""
       })});
       statusMessage($("updateMessage"), "Profile saved to the database.");
       await loadProfile();
     } catch (err) { statusMessage($("updateMessage"), err.message, true); }
   });
 
-  // Resume upload (server stores the file; browser extracts readable text for matching)
+  // Resume upload: extract locally, let the student edit the text, then persist file + text together.
   const resumeInput = $("resume");
-  if (resumeInput) resumeInput.addEventListener("change", () => {
-    if ($("fileName")) $("fileName").textContent = resumeInput.files[0]?.name || "No file selected";
+  async function extractResumeText(file) {
+    let extracted = "";
+    if (file.name.toLowerCase().endsWith(".pdf") && window.pdfjsLib) {
+      const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+        const page = await pdf.getPage(pageNumber);
+        const content = await page.getTextContent();
+        extracted += content.items.map(item => item.str).join(" ") + "\n";
+      }
+    } else if (file.name.toLowerCase().endsWith(".docx") && window.mammoth) {
+      const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+      extracted = result.value;
+    }
+    return extracted.trim().slice(0, 30000);
+  }
+  if (resumeInput) resumeInput.addEventListener("change", async () => {
+    const file = resumeInput.files[0];
+    if ($("fileName")) $("fileName").textContent = file?.name || "No file selected";
+    if (!file) return;
+    statusMessage($("uploadMessage"), "Extracting resume text...");
+    try {
+      const extracted = await extractResumeText(file);
+      if ($("resumeTextEditor")) $("resumeTextEditor").value = extracted;
+      statusMessage($("uploadMessage"), extracted.length >= 20
+        ? "Text extracted. Review or edit it, then save your new resume."
+        : "Could not extract enough text. This may be a scanned PDF; please use a text-based PDF or DOCX.", extracted.length < 20);
+    } catch (error) {
+      statusMessage($("uploadMessage"), "Could not read this resume: " + error.message, true);
+    }
   });
+
   const uploadBtn = $("uploadBtn");
   if (uploadBtn) uploadBtn.addEventListener("click", async () => {
     if (!requireLogin()) return;
     const file = resumeInput?.files?.[0];
-    if (!file) return statusMessage($("uploadMessage"), "Choose a PDF or DOCX file first.", true);
+    if (!file) return statusMessage($("uploadMessage"), "Choose a new PDF or DOCX resume first.", true);
+    const editedText = ($("resumeTextEditor")?.value || "").trim().slice(0, 30000);
+    if (editedText.length < 20) return statusMessage($("uploadMessage"), "The extracted resume text must contain at least 20 characters.", true);
     const user = currentUser();
-    const form = new FormData(); form.append("resume", file);
+    const form = new FormData();
+    form.append("resume_text", editedText);
+    form.append("resume", file);
     uploadBtn.disabled = true;
     try {
       await api(`/students/${user.id}/resume`, { method: "POST", body: form });
-      let text = "";
-      if (file.name.toLowerCase().endsWith(".pdf") && window.pdfjsLib) {
-        const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          text += content.items.map(x => x.str).join(" ") + "\n";
-        }
-      } else if (file.name.toLowerCase().endsWith(".docx") && window.mammoth) {
-        const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
-        text = result.value;
-      }
-      if (text.trim()) {
-        const key = resumeStorageKey(user);
-        if (key) localStorage.setItem(key, text.slice(0, 30000));
-      }
-      statusMessage($("uploadMessage"), "Resume uploaded. " + (text.trim() ? "Text extracted for skill matching." : "The file is stored; text extraction was unavailable in this browser."));
-      if ($("resumeTextPreview")) $("resumeTextPreview").textContent = text.slice(0, 5000);
-    } catch (err) { statusMessage($("uploadMessage"), err.message, true); }
-    finally { uploadBtn.disabled = false; }
+      const key = resumeStorageKey(user);
+      if (key) localStorage.setItem(key, editedText);
+      statusMessage($("uploadMessage"), "New resume and edited extracted text saved to the database. Previous resume replaced.");
+    } catch (err) {
+      statusMessage($("uploadMessage"), err.message, true);
+    } finally {
+      uploadBtn.disabled = false;
+    }
   });
 
   // Jobs from MySQL API, not localStorage/demo arrays
