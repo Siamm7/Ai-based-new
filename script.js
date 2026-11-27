@@ -416,6 +416,11 @@
       .filter(j => (type === "All" || j.type.toLowerCase() === type.toLowerCase()) &&
         `${j.title} ${j.company} ${j.location} ${j.skills.join(" ")}`.toLowerCase().includes(search))
       .sort((a, b) => {
+        // Rank jobs by their actual match score, highest first.
+        // Use AI scores when available and keyword scores as the fallback.
+        const scoreDifference = b.match.score - a.match.score;
+        if (scoreDifference !== 0) return scoreDifference;
+        // Keep AI-ranked jobs ahead when scores are tied.
         const aHasAI = aiRecommendations.has(Number(a.id));
         const bHasAI = aiRecommendations.has(Number(b.id));
         if (aHasAI !== bHasAI) return aHasAI ? -1 : 1;
