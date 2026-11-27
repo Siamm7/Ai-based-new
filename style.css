@@ -699,3 +699,36 @@ button:disabled{cursor:not-allowed;opacity:.6;transform:none}
 @media(max-width:900px){.recruiter-login-shell{grid-template-columns:1fr minmax(340px,420px);gap:28px}.recruiter-login-intro h1{font-size:42px}}
 @media(max-width:720px){.recruiter-login-shell{width:min(500px,calc(100% - 34px));grid-template-columns:1fr;padding:38px 0 48px;gap:28px}.recruiter-login-intro{max-width:none}.recruiter-login-intro h1{font-size:37px;margin:17px 0 12px}.recruiter-login-intro>p{font-size:14px}.recruiter-login-benefits{gap:12px;margin-top:22px}.recruiter-explore-cta{margin-top:20px}.recruiter-login-card{padding:27px 22px}}
 @media(max-width:520px){.recruiter-login-page .site-header{align-items:flex-start}.recruiter-login-page .main-nav{overflow-x:auto;flex-wrap:nowrap;width:100%;justify-content:flex-start}.recruiter-login-page .main-nav a{white-space:nowrap}}
+
+
+/* Recruiter registration refresh */
+.recruiter-register-page{min-height:100vh;background:radial-gradient(ellipse at 50% 10%,rgba(220,231,255,.75),transparent 42%),#f4f7fc}
+.recruiter-register-page .site-header{background:rgba(255,255,255,.97)}
+.recruiter-register-page .main-nav{gap:clamp(12px,2vw,25px)}
+.recruiter-register-page .main-nav a:hover{color:#3157d5}
+.recruiter-register-page .page-shell{width:min(760px,calc(100% - 34px));padding:38px 0 60px}
+.recruiter-register-page .portal-box{max-width:none;margin:0;padding:34px 36px;border:1px solid #e3eaf5;border-radius:22px;background:#fff;box-shadow:0 22px 65px rgba(26,48,100,.10)}
+.recruiter-register-heading{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.recruiter-register-icon{width:46px;height:46px;flex:0 0 46px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,#4169e9,#294bc1);color:#fff;font-size:21px;box-shadow:0 7px 17px rgba(49,87,213,.2)}
+.recruiter-register-page .portal-box .section-kicker{margin:0 0 5px;color:#3157d5;font-size:10px;font-weight:800;letter-spacing:1px}
+.recruiter-register-page .portal-box h1{margin:0;color:#17233f;font:800 27px/1.25 Manrope,sans-serif;letter-spacing:-.7px}
+.recruiter-register-lead{margin:12px 0 21px;color:#71809a;font-size:13px;line-height:1.7}
+.recruiter-register-page .portal-note{margin:0 0 22px;padding:14px 16px;border:1px solid #dce7ff;border-radius:12px;background:#f4f7ff;color:#52658b;font-size:12px;line-height:1.7}
+.recruiter-register-page .portal-note b{color:#3157b9}
+.recruiter-register-page .portal-grid{column-gap:16px;row-gap:2px}
+.recruiter-register-page .portal-box label{margin:13px 0 7px;color:#40516f;font-size:12px;font-weight:700}
+.recruiter-register-page .portal-box input:not([type=file]),.recruiter-register-page .portal-box textarea{width:100%;min-height:45px;padding:0 12px;border:1px solid #dce4f1;border-radius:9px;background:#fbfcff;color:#17233f;font:14px 'DM Sans',sans-serif;outline:none;transition:border-color .18s,box-shadow .18s}
+.recruiter-register-page .portal-box input::placeholder{color:#a0aabd}
+.recruiter-register-page .portal-box input:focus,.recruiter-register-page .portal-box textarea:focus{border-color:#829df2;box-shadow:0 0 0 4px rgba(54,91,214,.11);background:#fff}
+.recruiter-register-page .portal-box input[type=file]{width:100%;padding:12px;border:1px dashed #b9c9ed;border-radius:10px;background:#f9fbff;color:#64748b;font-size:12px}
+.recruiter-register-page .portal-hint{margin:6px 0 0;color:#8995a9;font-size:11px;line-height:1.5}
+.recruiter-register-page .portal-box .password-field-wrap{width:100%;margin:0}
+.recruiter-register-page .password-field-wrap input{padding-right:82px!important}
+.recruiter-register-page .password-visibility-toggle{width:auto!important;min-width:54px;height:30px;min-height:30px;margin:0!important;padding:5px 9px!important;border:0!important;border-radius:7px!important;background:#edf2ff!important;color:#3157d5!important;font-size:12px!important;line-height:1!important;box-shadow:none!important}
+.recruiter-register-page .portal-box button{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:49px;margin-top:18px;padding:12px 18px;border:1px solid #294bc1;border-radius:10px;background:linear-gradient(135deg,#4169e9,#294bc1);color:#fff;font:800 14px 'DM Sans',sans-serif;box-shadow:0 8px 18px rgba(49,87,213,.22);transition:transform .18s,box-shadow .18s,filter .18s}
+.recruiter-register-page .portal-box button:hover{transform:translateY(-1px);filter:brightness(.97);box-shadow:0 11px 22px rgba(49,87,213,.28)}
+.recruiter-register-page .portal-box button:disabled{opacity:.65;cursor:wait;transform:none}
+.recruiter-register-page #rrMessage{min-height:18px;margin:10px 0 0;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.recruiter-register-page .portal-box>p:last-child{margin:20px 0 0;padding-top:15px;border-top:1px solid #edf0f6;text-align:center;color:#71809a;font-size:12px}
+.recruiter-register-page .portal-box a{color:#3157d5;font-weight:800}
+@media(max-width:650px){.recruiter-register-page .page-shell{padding:25px 0 40px}.recruiter-register-page .portal-box{padding:25px 19px;border-radius:17px}.recruiter-register-page .portal-grid{grid-template-columns:1fr}.recruiter-register-page .portal-box .wide{grid-column:auto}.recruiter-register-page .portal-box h1{font-size:23px}}
