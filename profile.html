@@ -36,7 +36,19 @@
           <div><label for="updateName">Full Name</label><input type="text" id="updateName" required></div>
           <div><label for="updateUniversity">University</label><input type="text" id="updateUniversity" required></div>
           <div><label for="updateDepartment">Department</label><input type="text" id="updateDepartment" required></div>
-          <div><label for="updateSkills">Skills</label><input type="text" id="updateSkills" placeholder="HTML, CSS, JavaScript" required></div>
+          <div><label for="updateSkills">Technical Skills</label><input type="text" id="updateSkills" placeholder="HTML, CSS, JavaScript" required></div>
+          <div><label for="updatePhone">Phone</label><input type="tel" id="updatePhone" placeholder="+8801XXXXXXXXX"></div>
+          <div><label for="updateLocation">Current Location</label><input type="text" id="updateLocation" placeholder="Dhaka, Bangladesh"></div>
+          <div><label for="updateGraduationYear">Expected Graduation Year</label><input type="number" id="updateGraduationYear" min="1950" max="2150" placeholder="2027"></div>
+          <div><label for="updateExperienceLevel">Experience Level</label><select id="updateExperienceLevel"><option value="">Select experience level</option><option>Student</option><option>Fresher</option><option>Internship</option><option>Entry-level</option><option>1-2 years</option><option>3+ years</option></select></div>
+          <div><label for="updatePreferredRoles">Preferred Job Roles</label><input type="text" id="updatePreferredRoles" placeholder="Frontend Developer, Backend Developer"></div>
+          <div><label for="updateTools">Tools &amp; Technologies</label><input type="text" id="updateTools" placeholder="Git, Docker, VS Code, .NET"></div>
+          <div><label for="updateProjects">Projects</label><textarea id="updateProjects" rows="3" placeholder="Project names and short descriptions"></textarea></div>
+          <div><label for="updateCertifications">Certifications</label><textarea id="updateCertifications" rows="2" placeholder="Certificates and courses"></textarea></div>
+          <div><label for="updateCareerObjective">Career Objective</label><textarea id="updateCareerObjective" rows="3" placeholder="What kind of role are you looking for?"></textarea></div>
+          <div><label for="updateLinkedin">LinkedIn URL</label><input type="url" id="updateLinkedin" placeholder="https://linkedin.com/in/..."></div>
+          <div><label for="updateGithub">GitHub URL</label><input type="url" id="updateGithub" placeholder="https://github.com/..."></div>
+          <div><label for="updatePortfolio">Portfolio URL</label><input type="url" id="updatePortfolio" placeholder="https://..."></div>
           <button class="btn" type="submit">Save Profile Changes →</button>
         </form>
         <p id="updateMessage" aria-live="polite"></p>
@@ -44,10 +56,12 @@
 
       <section class="resume-section">
         <h3>Resume &amp; Skills</h3>
-        <p>Upload your resume in PDF or DOCX format. The system will extract readable text and identify supported skills.</p>
+        <p>Choose a PDF or DOCX resume. Review and edit the extracted text before saving it.</p>
         <input type="file" id="resume" accept=".pdf,.docx">
         <p id="fileName">No file selected</p>
-        <button class="btn" id="uploadBtn" type="button">Upload &amp; Analyse Resume →</button>
+        <label for="resumeTextEditor">Extracted Resume Text (editable)</label>
+        <textarea id="resumeTextEditor" rows="12" placeholder="Select a resume to extract its text. You can edit the text before saving."></textarea>
+        <button class="btn" id="uploadBtn" type="button">Save New Resume &amp; Extracted Text →</button>
         <p id="uploadMessage" aria-live="polite"></p>
       </section>
     </div>
