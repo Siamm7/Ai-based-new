@@ -9,7 +9,7 @@
 
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="register-page">
 
     <header class="site-header">
     <a class="brand" href="index.html"><span class="brand-mark">✦</span><span>Job Recommendation System</span></a>
@@ -21,7 +21,7 @@
     </nav>
   </header>
 
-    <div class="register-container">
+    <main class="register-container">
 
         <h1>Create Student Account</h1>
         <p>Join Job Recommendation System and find your opportunities.</p>
@@ -57,11 +57,11 @@
             <input type="text" id="skills"
                    placeholder="Example: HTML, CSS, JavaScript" required>
 
-            <button type="submit">Create Account</button>
+            <button class="register-submit" type="submit">Create Account <span aria-hidden="true">→</span></button>
 
         </form>
-
-    </div>
+        <p class="register-login-prompt">Already have an account? <a href="login.html">Sign in</a></p>
+    </main>
 
     <script src="config.js"></script>
   <script src="password-toggle.js"></script>
