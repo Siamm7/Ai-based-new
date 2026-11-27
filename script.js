@@ -191,18 +191,18 @@
   function parseResumeIntoProfile(text) {
     const source = String(text || "");
     const patterns = {
-      updateName: [/^(?:full\\s+name|name)\\s*[:|-]\\s*(.+)$/im],
-      updatePhone: [/(?:phone|mobile|contact)\\s*[:|-]?\\s*(\\+?[\\d][\\d ()-]{7,18})/i],
-      updateLocation: [/(?:location|address)\\s*[:|-]\\s*(.+)$/im],
-      updateLinkedin: [/(https?:\\/\\/(?:www\\.)?linkedin\\.com\\/[^\\s]+)/i],
-      updateGithub: [/(https?:\\/\\/(?:www\\.)?github\\.com\\/[^\\s]+)/i],
-      updateUniversity: [/^.*\\b(?:university|college|institute)\\b.*$/im],
-      updateDepartment: [/(?:department|major|field of study)\\s*[:|-]\\s*(.+)$/im],
-      updateGraduationYear: [/(?:graduation year|expected graduation|class of)\\s*[:|-]?\\s*((?:19|20|21)\\d{2})/i],
-      updateSkills: [/(?:technical skills|skills)\\s*[:|-]\\s*([^\\n]+)/i],
-      updateProjects: [/(?:projects|personal projects)\\s*[:|-]\\s*([\\s\\S]*?)(?=\\n[A-Z][A-Z &]{2,}\\n|$)/i],
-      updateCertifications: [/(?:certifications?|certificates)\\s*[:|-]\\s*([\\s\\S]*?)(?=\\n[A-Z][A-Z &]{2,}\\n|$)/i],
-      updateCareerObjective: [/(?:career objective|professional summary|summary)\\s*[:|-]\\s*([\\s\\S]*?)(?=\\n[A-Z][A-Z &]{2,}\\n|$)/i]
+      updateName: [/^(?:full\s+name|name)\s*[:|-]\s*(.+)$/im],
+      updatePhone: [/(?:phone|mobile|contact)\s*[:|-]?\s*(\+?[\d][\d ()-]{7,18})/i],
+      updateLocation: [/(?:location|address)\s*[:|-]\s*(.+)$/im],
+      updateLinkedin: [/(https?:\/\/(?:www\.)?linkedin\.com\/[^\s]+)/i],
+      updateGithub: [/(https?:\/\/(?:www\.)?github\.com\/[^\s]+)/i],
+      updateUniversity: [/^.*\b(?:university|college|institute)\b.*$/im],
+      updateDepartment: [/(?:department|major|field of study)\s*[:|-]\s*(.+)$/im],
+      updateGraduationYear: [/(?:graduation year|expected graduation|class of)\s*[:|-]?\s*((?:19|20|21)\d{2})/i],
+      updateSkills: [/(?:technical skills|skills)\s*[:|-]\s*([^\n]+)/i],
+      updateProjects: [/(?:projects|personal projects)\s*[:|-]\s*([\s\S]*?)(?=\n[A-Z][A-Z &]{2,}\n|$)/i],
+      updateCertifications: [/(?:certifications?|certificates)\s*[:|-]\s*([\s\S]*?)(?=\n[A-Z][A-Z &]{2,}\n|$)/i],
+      updateCareerObjective: [/(?:career objective|professional summary|summary)\s*[:|-]\s*([\s\S]*?)(?=\n[A-Z][A-Z &]{2,}\n|$)/i]
     };
     let count = 0;
     for (const [id, list] of Object.entries(patterns)) {
