@@ -653,3 +653,49 @@ button:disabled{cursor:not-allowed;opacity:.6;transform:none}
   .register-page .register-container{margin:28px auto 40px;padding:27px 21px 24px}
   .register-page .register-container h1{font-size:24px}
 }
+
+/* Recruiter login page redesign */
+.recruiter-login-page{min-height:100vh;background:radial-gradient(ellipse at 17% 35%,rgba(220,231,255,.8),transparent 43%),#f4f7fc}
+.recruiter-login-page .site-header{background:rgba(255,255,255,.97)}
+.recruiter-login-page .main-nav{gap:clamp(12px,2vw,25px)}
+.recruiter-login-page .main-nav .recruiter-explore-link{color:#3157d5;font-weight:800}
+.recruiter-login-shell{width:min(1120px,calc(100% - 52px));min-height:calc(100vh - 78px);margin:0 auto;padding:58px 0 70px;display:grid;grid-template-columns:minmax(0,1fr) minmax(380px,455px);align-items:center;gap:clamp(40px,7vw,95px)}
+.recruiter-login-intro{max-width:570px}
+.recruiter-login-eyebrow{display:inline-flex;align-items:center;gap:9px;padding:8px 13px;border:1px solid #dce6ff;border-radius:999px;background:#fff;color:#3157d5;font-size:11px;font-weight:800;letter-spacing:1.1px}
+.recruiter-login-eyebrow>span{width:7px;height:7px;border-radius:50%;background:#16a67a}
+.recruiter-login-intro h1{margin:23px 0 18px;color:#17233f;font:800 clamp(37px,5vw,56px)/1.12 Manrope,sans-serif;letter-spacing:-2px}
+.recruiter-login-intro h1 span{color:#365bd6}
+.recruiter-login-intro>p{max-width:500px;color:#687791;font-size:16px;line-height:1.85}
+.recruiter-login-benefits{display:grid;gap:18px;margin-top:32px}
+.recruiter-login-benefits>div{display:flex;align-items:center;gap:13px}
+.benefit-icon{width:39px;height:39px;flex:0 0 39px;display:grid;place-items:center;border:1px solid #dfe8ff;border-radius:12px;background:#fff;color:#3157d5;font-size:18px;font-weight:800}
+.recruiter-login-benefits strong,.recruiter-login-benefits small{display:block}
+.recruiter-login-benefits strong{color:#263653;font-size:13px}
+.recruiter-login-benefits small{margin-top:2px;color:#8490a5;font-size:12px}
+.recruiter-explore-cta{display:inline-flex;align-items:center;gap:12px;margin-top:31px;padding:12px 17px;border:1px solid #d6e1ff;border-radius:10px;background:#fff;color:#3157d5;font-size:13px;font-weight:800;box-shadow:0 6px 18px rgba(35,65,140,.06);transition:transform .18s,box-shadow .18s,background .18s}
+.recruiter-explore-cta:hover{transform:translateY(-2px);background:#f8faff;box-shadow:0 10px 24px rgba(35,65,140,.1)}
+.recruiter-login-card{width:100%;padding:33px;border:1px solid #e3eaf5;border-radius:22px;background:#fff;box-shadow:0 22px 65px rgba(26,48,100,.10)}
+.recruiter-card-icon{width:44px;height:44px;display:grid;place-items:center;margin-bottom:19px;border-radius:14px;background:linear-gradient(135deg,#eaf0ff,#dce6ff);color:#3157d5;font-size:23px;font-weight:800}
+.recruiter-login-card .section-kicker{margin-bottom:7px}
+.recruiter-login-card h2{color:#17233f;font:800 27px/1.2 Manrope,sans-serif;letter-spacing:-.7px}
+.recruiter-card-subtitle{margin:9px 0 21px;color:#71809a;font-size:13px;line-height:1.6}
+.recruiter-login-card .portal-note{display:flex;flex-direction:column;gap:3px;margin:0 0 21px;padding:13px 14px;border:1px solid #dce7ff;border-radius:11px;background:#f4f7ff;color:#52658b;font-size:12px;line-height:1.55}
+.recruiter-login-card .portal-note strong{color:#3157b9;font-size:12px}
+.recruiter-login-card form label{display:block;margin:14px 0 7px;color:#40516f;font-size:12px;font-weight:700}
+.recruiter-login-card form input{display:block;width:100%;height:47px;min-height:47px;margin:0;padding:0 13px;border:1px solid #dce4f1;border-radius:10px;background:#fbfcff;color:#17233f;font-size:14px;outline:none;transition:border-color .18s,box-shadow .18s}
+.recruiter-login-card form input::placeholder{color:#a0aabd}
+.recruiter-login-card form input:focus{border-color:#829df2;box-shadow:0 0 0 4px rgba(54,91,214,.11);background:#fff}
+.recruiter-login-card .password-field-wrap{width:100%;margin:0}
+.recruiter-login-card .password-field-wrap input[type="password"],.recruiter-login-card .password-field-wrap input[type="text"]{padding-right:82px!important}
+.recruiter-login-card .password-visibility-toggle{width:auto!important;min-width:54px;height:30px;min-height:30px;margin:0!important;padding:5px 9px!important;border:0!important;border-radius:7px!important;background:#edf2ff!important;color:#3157d5!important;font-size:12px!important;line-height:1!important;box-shadow:none!important}
+.recruiter-login-card form button{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:48px;margin:21px 0 0;padding:12px 16px;border:1px solid #294bc1;border-radius:10px;background:linear-gradient(135deg,#4169e9,#294bc1);color:#fff;font-size:14px;font-weight:800;box-shadow:0 8px 18px rgba(49,87,213,.22);transition:transform .18s,box-shadow .18s,filter .18s}
+.recruiter-login-card form button:hover{transform:translateY(-1px);filter:brightness(.97);box-shadow:0 11px 22px rgba(49,87,213,.28)}
+.recruiter-login-card form button:disabled{opacity:.65;cursor:wait;transform:none}
+.recruiter-login-message{min-height:18px;margin-top:10px;color:#64748b;font-size:12px;overflow-wrap:anywhere}
+.recruiter-register-prompt{margin:17px 0 0;text-align:center;color:#71809a;font-size:12px}
+.recruiter-register-prompt a{color:#3157d5;font-weight:800}
+.recruiter-back-link{display:block;margin-top:16px;text-align:center;color:#8995a9;font-size:12px}
+.recruiter-back-link:hover{color:#3157d5}
+@media(max-width:900px){.recruiter-login-shell{grid-template-columns:1fr minmax(340px,420px);gap:28px}.recruiter-login-intro h1{font-size:42px}}
+@media(max-width:720px){.recruiter-login-shell{width:min(500px,calc(100% - 34px));grid-template-columns:1fr;padding:38px 0 48px;gap:28px}.recruiter-login-intro{max-width:none}.recruiter-login-intro h1{font-size:37px;margin:17px 0 12px}.recruiter-login-intro>p{font-size:14px}.recruiter-login-benefits{gap:12px;margin-top:22px}.recruiter-explore-cta{margin-top:20px}.recruiter-login-card{padding:27px 22px}}
+@media(max-width:520px){.recruiter-login-page .site-header{align-items:flex-start}.recruiter-login-page .main-nav{overflow-x:auto;flex-wrap:nowrap;width:100%;justify-content:flex-start}.recruiter-login-page .main-nav a{white-space:nowrap}}
