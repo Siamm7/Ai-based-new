@@ -370,3 +370,59 @@ header:not(.site-header) nav a:hover{color:var(--primary)}
 .job-details-actions a:hover{background:var(--primary-dark)}
 @media(max-width:850px){.login-shell{grid-template-columns:1fr;max-width:560px;padding:48px 0;gap:35px}.login-intro{text-align:center;margin:auto}.login-intro>p{margin:auto}.login-benefits{max-width:390px;margin:28px auto 0;text-align:left}.login-card{justify-self:center}.login-intro h1{font-size:clamp(36px,8vw,49px)}}
 @media(max-width:520px){.login-shell{width:calc(100% - 34px);padding:36px 0}.login-card{padding:27px 22px}.login-intro>p{font-size:14px}.login-benefits{gap:15px}.job-details-dialog{padding:25px 20px}.job-details-close{top:12px;right:12px}}
+
+
+/* Keep the homepage Get Started CTA readable over the navigation styles. */
+.main-nav a.nav-cta,
+.main-nav a.nav-cta:visited {
+  color: #fff;
+  background: linear-gradient(135deg, #3157d5, #2445b7);
+  border: 1px solid #2445b7;
+  box-shadow: 0 8px 18px rgba(49,87,213,.25);
+}
+.main-nav a.nav-cta:hover,
+.main-nav a.nav-cta:focus-visible {
+  color: #fff;
+  background: linear-gradient(135deg, #2445b7, #19358f);
+  border-color: #19358f;
+}
+
+/* Password visibility controls shared by student and recruiter forms. */
+.password-field-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+.password-field-wrap input[type="password"],
+.password-field-wrap input[type="text"] {
+  width: 100%;
+  padding-right: 76px !important;
+}
+.password-visibility-toggle {
+  position: absolute;
+  top: 50%;
+  right: 9px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  min-height: 32px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: #edf2ff;
+  color: #3157d5;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: none;
+}
+.password-visibility-toggle:hover,
+.password-visibility-toggle:focus-visible {
+  background: #dce6ff;
+  color: #19358f;
+  outline: 2px solid rgba(49,87,213,.2);
+  outline-offset: 1px;
+}
