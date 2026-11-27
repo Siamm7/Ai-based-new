@@ -1,9 +1,42 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Recruiter Login</title><link rel="stylesheet" href="style.css">
-<style>.portal-box{max-width:520px;margin:55px auto;padding:28px;background:#fff;border-radius:14px;box-shadow:0 8px 30px #0f172a12}.portal-box label{display:block;font-weight:600;margin:16px 0 6px}.portal-box input{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:8px;font:inherit}.portal-box button{margin-top:20px;padding:12px 20px;border:0;border-radius:8px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer}.portal-box button:disabled{opacity:.6}.portal-note{padding:12px;background:#eff6ff;border-radius:8px;margin:16px 0}</style></head><body>
-<header class="site-header"><a class="brand" href="index.html">✦ Job Recommendation System</a><nav class="main-nav"><a href="login.html">Student Login</a><a href="recruiter-register.html">Recruiter Registration</a></nav></header>
-<main class="page-shell"><section class="portal-box"><p class="section-kicker">EMPLOYER PORTAL</p><h1>Recruiter Login</h1><p>Sign in using your separately registered recruiter account.</p>
-<div class="portal-note">Only recruiter accounts approved by the administrator can log in.</div>
-<form id="recruiterLoginForm"><label for="recruiterEmail">Company email</label><input id="recruiterEmail" type="email" autocomplete="username" required><label for="recruiterPassword">Password</label><input id="recruiterPassword" type="password" autocomplete="current-password" required><button id="recruiterLoginButton" type="submit">Log in as Recruiter</button><p id="recruiterLoginMessage" aria-live="polite"></p></form>
-<p>New recruiter? <a href="recruiter-register.html">Register your company account</a></p></section></main><script src="config.js"></script>
-  <script src="password-toggle.js"></script><script src="recruiter-login.js"></script></body></html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#f4f7fc"><title>Recruiter Login | Job Recommendation System</title>
+<link rel="stylesheet" href="style.css"></head>
+<body class="recruiter-login-page">
+<header class="site-header">
+<a class="brand" href="index.html"><span class="brand-mark">✦</span><span>Job Recommendation System</span></a>
+<nav class="main-nav" aria-label="Main navigation">
+<a href="index.html">Home</a><a class="recruiter-explore-link" href="jobs.html">Explore Jobs</a>
+<a href="login.html">Student Login</a><a href="recruiter-register.html" class="nav-cta">Recruiter Registration</a>
+</nav></header>
+<main class="recruiter-login-shell">
+<section class="recruiter-login-intro">
+<span class="recruiter-login-eyebrow"><span></span> EMPLOYER PORTAL</span>
+<h1>Find the right talent.<br><span>Build what’s next.</span></h1>
+<p>Sign in to manage your company profile, publish opportunities, and connect with students whose skills match your needs.</p>
+<div class="recruiter-login-benefits">
+<div><span class="benefit-icon">✓</span><span><strong>Manage opportunities</strong><small>Create and update your job listings.</small></span></div>
+<div><span class="benefit-icon">◎</span><span><strong>Discover candidates</strong><small>Review applicants in one workspace.</small></span></div>
+<div><span class="benefit-icon">⌁</span><span><strong>Track applications</strong><small>Keep your hiring process organized.</small></span></div>
+</div>
+<a class="recruiter-explore-cta" href="jobs.html">Explore available jobs <span aria-hidden="true">→</span></a>
+</section>
+<section class="recruiter-login-card" aria-labelledby="recruiterLoginTitle">
+<div class="recruiter-card-icon">↗</div><p class="section-kicker">WELCOME BACK</p>
+<h2 id="recruiterLoginTitle">Recruiter login</h2>
+<p class="recruiter-card-subtitle">Use your registered company account to continue.</p>
+<div class="portal-note" role="note"><strong>Account approval required</strong><span>Only recruiter accounts approved by the administrator can log in.</span></div>
+<form id="recruiterLoginForm">
+<label for="recruiterEmail">Company email</label>
+<input id="recruiterEmail" type="email" autocomplete="username" placeholder="name@company.com" required>
+<label for="recruiterPassword">Password</label>
+<input id="recruiterPassword" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+<button id="recruiterLoginButton" type="submit">Log in to recruiter portal <span aria-hidden="true">→</span></button>
+<p id="recruiterLoginMessage" class="recruiter-login-message" aria-live="polite"></p>
+</form>
+<p class="recruiter-register-prompt">New to the platform? <a href="recruiter-register.html">Register your company</a></p>
+<a class="recruiter-back-link" href="index.html">← Back to homepage</a>
+</section></main>
+<script src="config.js"></script><script src="password-toggle.js"></script><script src="recruiter-login.js"></script>
+</body></html>
