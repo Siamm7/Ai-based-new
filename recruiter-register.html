@@ -1,18 +1,102 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Recruiter Registration</title><link rel="stylesheet" href="style.css">
-<style>.portal-box{max-width:760px;margin:35px auto;padding:28px;background:#fff;border-radius:14px;box-shadow:0 8px 30px #0f172a12}.portal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.portal-box label{display:block;font-weight:600;margin:14px 0 6px}.portal-box input,.portal-box textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;font:inherit}.portal-box .wide{grid-column:1/-1}.portal-box button{margin-top:20px;padding:12px 20px;border:0;border-radius:8px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer}.portal-note{padding:14px;background:#eff6ff;border-radius:8px;margin:16px 0;color:#1e3a8a}.portal-hint{font-size:13px;color:#64748b}@media(max-width:650px){.portal-grid{grid-template-columns:1fr}.portal-box .wide{grid-column:auto}}</style></head><body class="recruiter-register-page">
-<header class="site-header"><a class="brand" href="index.html">✦ Job Recommendation System</a><nav class="main-nav" aria-label="Main navigation"><a href="index.html">Home</a><a href="jobs.html">Explore Jobs</a><a href="login.html">Student Login</a><a href="recruiter-login.html">Recruiter Login</a></nav></header>
-<main class="page-shell"><section class="portal-box"><div class="recruiter-register-heading"><span class="recruiter-register-icon">✦</span><div><p class="section-kicker">EMPLOYER ONBOARDING</p><h1>Join as a Recruiter</h1></div></div><p class="recruiter-register-lead">Create your company account to publish opportunities, discover promising candidates, and manage applications. Your registration will remain pending until an administrator verifies your company and authorization.</p>
-<div class="portal-note"><b>Verification required:</b> Upload an authorization letter on company letterhead, proof of employment, or another document showing that you are authorized to recruit for this company. Do not upload national ID or unrelated sensitive documents. Admin may independently contact the company before approval.</div>
-<form id="recruiterRegisterForm" enctype="multipart/form-data"><div class="portal-grid">
-<div><label for="rrName">Full name *</label><input id="rrName" name="full_name" maxlength="150" required></div>
-<div><label for="rrEmail">Official company email *</label><input id="rrEmail" name="email" type="email" placeholder="you@company.com" maxlength="190" required><p class="portal-hint">Use your company email where possible.</p></div>
-<div><label for="rrPassword">Password *</label><input id="rrPassword" name="password" type="password" minlength="8" autocomplete="new-password" required></div>
-<div><label for="rrPhone">Contact number *</label><input id="rrPhone" name="phone" type="tel" maxlength="40" required></div>
-<div><label for="rrCompany">Company name *</label><input id="rrCompany" name="company_name" maxlength="150" required></div>
-<div><label for="rrWebsite">Company website</label><input id="rrWebsite" name="company_website" type="url" placeholder="https://company.com"></div>
-<div class="wide"><label for="rrPosition">Your job title / position *</label><input id="rrPosition" name="job_title" maxlength="120" placeholder="HR Manager / Talent Acquisition Specialist" required></div>
-<div class="wide"><label for="rrProof">Verification document *</label><input id="rrProof" name="verification_document" type="file" accept=".pdf,.jpg,.jpeg,.png" required><p class="portal-hint">PDF, JPG or PNG · Maximum 5 MB. This document is visible only to administrators for verification.</p></div>
-<div class="wide"><button id="rrSubmit" type="submit">Submit for Verification <span aria-hidden="true">→</span></button><p id="rrMessage" aria-live="polite"></p></div>
-</div></form><p>Already registered? <a href="recruiter-login.html">Recruiter login</a></p></section></main><script src="config.js"></script>
-  <script src="password-toggle.js"></script><script src="recruiter-register.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f5f7fc">
+  <title>Recruiter Registration | Job Recommendation System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="recruiter-register-page">
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-mark">✦</span><span>Job Recommendation System</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="index.html">Home</a>
+      <a href="jobs.html">Explore Jobs</a>
+      <a href="login.html">Student Login</a>
+      <a href="recruiter-login.html">Recruiter Login</a>
+    </nav>
+  </header>
+
+  <main class="recruiter-register-layout">
+    <aside class="recruiter-register-aside">
+      <span class="recruiter-register-eyebrow"><span></span> EMPLOYER ONBOARDING</span>
+      <h1>Build your team<br><span>with better matches.</span></h1>
+      <p class="recruiter-register-intro-copy">Create your recruiter account to share opportunities and connect with students whose skills align with your hiring needs.</p>
+
+      <div class="recruiter-register-benefits">
+        <div class="recruiter-benefit">
+          <span class="recruiter-benefit-icon">01</span>
+          <div><strong>Publish opportunities</strong><small>Create and manage your job listings.</small></div>
+        </div>
+        <div class="recruiter-benefit">
+          <span class="recruiter-benefit-icon">02</span>
+          <div><strong>Reach relevant candidates</strong><small>Connect with emerging student talent.</small></div>
+        </div>
+        <div class="recruiter-benefit">
+          <span class="recruiter-benefit-icon">03</span>
+          <div><strong>Manage applications</strong><small>Keep your recruitment activity organized.</small></div>
+        </div>
+      </div>
+
+      <div class="recruiter-register-aside-footer">
+        <span>Already have an account?</span>
+        <a href="recruiter-login.html">Sign in to recruiter portal <span aria-hidden="true">→</span></a>
+      </div>
+    </aside>
+
+    <section class="portal-box recruiter-register-card" aria-labelledby="recruiterRegisterTitle">
+      <div class="recruiter-register-card-heading">
+        <div class="recruiter-register-icon" aria-hidden="true">✦</div>
+        <div><p class="recruiter-register-kicker">GET STARTED</p><h2 id="recruiterRegisterTitle">Create recruiter account</h2></div>
+      </div>
+      <p class="recruiter-register-card-copy">Fill in your details to request access to the recruiter portal.</p>
+
+      <div class="portal-note recruiter-register-note">
+        <span class="recruiter-note-icon" aria-hidden="true">i</span>
+        <div><strong>Company verification is required</strong>
+        <p>Upload an authorization letter on company letterhead, proof of employment, or another document showing you are authorized to recruit for this company. Avoid uploading national ID or unrelated sensitive documents. An administrator may contact the company before approval.</p></div>
+      </div>
+
+      <form id="recruiterRegisterForm" enctype="multipart/form-data">
+        <div class="recruiter-form-section-title"><span>1</span> Your details</div>
+        <div class="portal-grid recruiter-form-grid">
+          <div class="recruiter-form-field"><label for="rrName">Full name <em>*</em></label><input id="rrName" name="full_name" maxlength="150" autocomplete="name" placeholder="e.g. Alex Morgan" required></div>
+          <div class="recruiter-form-field"><label for="rrEmail">Official company email <em>*</em></label><input id="rrEmail" name="email" type="email" placeholder="you@company.com" maxlength="190" autocomplete="email" required><p class="portal-hint">Use your work email where possible.</p></div>
+          <div class="recruiter-form-field"><label for="rrPassword">Password <em>*</em></label><input id="rrPassword" name="password" type="password" minlength="8" autocomplete="new-password" placeholder="At least 8 characters" required><p class="portal-hint">Use at least 8 characters.</p></div>
+          <div class="recruiter-form-field"><label for="rrPhone">Contact number <em>*</em></label><input id="rrPhone" name="phone" type="tel" maxlength="40" autocomplete="tel" placeholder="Your phone number" required></div>
+        </div>
+
+        <div class="recruiter-form-section-title recruiter-company-section"><span>2</span> Company information</div>
+        <div class="portal-grid recruiter-form-grid">
+          <div class="recruiter-form-field"><label for="rrCompany">Company name <em>*</em></label><input id="rrCompany" name="company_name" maxlength="150" autocomplete="organization" placeholder="Company or organization" required></div>
+          <div class="recruiter-form-field"><label for="rrWebsite">Company website</label><input id="rrWebsite" name="company_website" type="url" placeholder="https://company.com"></div>
+          <div class="recruiter-form-field wide"><label for="rrPosition">Your job title / position <em>*</em></label><input id="rrPosition" name="job_title" maxlength="120" placeholder="e.g. HR Manager / Talent Acquisition Specialist" required></div>
+        </div>
+
+        <div class="recruiter-form-section-title recruiter-company-section"><span>3</span> Verification document</div>
+        <div class="recruiter-form-field wide recruiter-file-field">
+          <label for="rrProof">Upload authorization document <em>*</em></label>
+          <div class="recruiter-file-control">
+            <span class="recruiter-file-icon" aria-hidden="true">↑</span>
+            <span class="recruiter-file-copy"><strong>Choose a file to upload</strong><small>PDF, JPG or PNG · Maximum 5 MB</small></span>
+            <span class="recruiter-file-action">Browse files</span>
+            <input id="rrProof" name="verification_document" type="file" accept=".pdf,.jpg,.jpeg,.png" required>
+          </div>
+          <p class="portal-hint">Your document is submitted for administrator review.</p>
+        </div>
+
+        <div class="wide recruiter-submit-wrap">
+          <button id="rrSubmit" type="submit">Submit registration <span aria-hidden="true">→</span></button>
+          <p id="rrMessage" class="recruiter-register-message" aria-live="polite"></p>
+        </div>
+      </form>
+      <p class="recruiter-register-terms">By submitting, you acknowledge that recruiter access remains pending until administrator approval.</p>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="password-toggle.js"></script>
+  <script src="recruiter-register.js"></script>
+</body>
+</html>
